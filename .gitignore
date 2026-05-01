@@ -27,7 +27,11 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
+build/
+*.g.dart
 .pub-cache/
 .pub/
 /build/
@@ -43,3 +47,22 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android
+android/local.properties
+android/.gradle/
+android/key.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Sensitive
+*.keystore
+*.jks
+key.properties

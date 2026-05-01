@@ -9,17 +9,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.41.6'
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
-      - run: flutter build apk --release
-      - uses: softprops/action-gh-release@v2
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: "Net.Intelligence build-${{ github.run_number }}"
+          name: "Net.Intelligence v1.0.0-build${{ github.run_number }}"
+          body: |
+            ## 🐢 Net.Intelligence
+
+            ### ダウンロード・インストール方法
+            1. 下の `app-release.apk` をタップしてダウンロード
+            2. Android: 設定 → セキュリティ → 提供元不明のアプリ → 許可
+            3. APKをタップしてインストール
+
+            **動作確認済み**: Android 8.0 (API 26) 以上
+
+            ### このビルドの内容
+            - 29シナリオ・58問を収録
+            - 実際のサイバー攻撃事例（2022〜2025年）に基づくシナリオ22件
+            - カテゴリ別習熟度トラッキング
           files: build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
