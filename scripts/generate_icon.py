@@ -1,0 +1,134 @@
+import cairosvg
+import os
+
+SVG_CONTENT = '''<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="1024" height="1024" fill="#1A3A5C" rx="200"/>
+
+  <!-- 黒板 -->
+  <rect x="100" y="80" width="824" height="420" fill="#2D5A27" rx="24"/>
+  <rect x="120" y="100" width="784" height="380" fill="#336B2E" rx="18"/>
+
+  <!-- 黒板: ネットワーク図 -->
+  <!-- Router (中央上) -->
+  <rect x="432" y="140" width="160" height="60" fill="none" stroke="#A8E6A0" stroke-width="4" rx="12"/>
+  <text x="512" y="178" text-anchor="middle" fill="#A8E6A0" font-size="28" font-family="monospace">Router</text>
+
+  <!-- Switch 左 -->
+  <rect x="220" y="240" width="140" height="52" fill="none" stroke="#87CEEB" stroke-width="3" rx="10"/>
+  <text x="290" y="273" text-anchor="middle" fill="#87CEEB" font-size="26" font-family="monospace">SW-1</text>
+
+  <!-- Switch 右 -->
+  <rect x="664" y="240" width="140" height="52" fill="none" stroke="#87CEEB" stroke-width="3" rx="10"/>
+  <text x="734" y="273" text-anchor="middle" fill="#87CEEB" font-size="26" font-family="monospace">SW-2</text>
+
+  <!-- PC 左下 -->
+  <rect x="160" y="360" width="100" height="44" fill="none" stroke="#FFD700" stroke-width="2.5" rx="8"/>
+  <text x="210" y="387" text-anchor="middle" fill="#FFD700" font-size="22" font-family="monospace">PC-A</text>
+
+  <!-- PC 右下 -->
+  <rect x="764" y="360" width="100" height="44" fill="none" stroke="#FFD700" stroke-width="2.5" rx="8"/>
+  <text x="814" y="387" text-anchor="middle" fill="#FFD700" font-size="22" font-family="monospace">PC-B</text>
+
+  <!-- 接続線 -->
+  <line x1="432" y1="170" x2="360" y2="240" stroke="#A8E6A0" stroke-width="3"/>
+  <line x1="592" y1="170" x2="664" y2="240" stroke="#A8E6A0" stroke-width="3"/>
+  <line x1="290" y1="292" x2="210" y2="360" stroke="#87CEEB" stroke-width="2.5"/>
+  <line x1="734" y1="292" x2="814" y2="360" stroke="#87CEEB" stroke-width="2.5"/>
+
+  <!-- チョーク受け -->
+  <rect x="100" y="492" width="824" height="20" fill="#8B6914" rx="4"/>
+
+  <!-- 亀 1 (左) -->
+  <ellipse cx="210" cy="700" rx="100" ry="66" fill="#4A7C59"/>
+  <ellipse cx="210" cy="700" rx="80" ry="50" fill="#5C9E70"/>
+  <ellipse cx="210" cy="680" rx="28" ry="20" fill="none" stroke="#3A6644" stroke-width="3.5"/>
+  <ellipse cx="172" cy="706" rx="22" ry="17" fill="none" stroke="#3A6644" stroke-width="3.5"/>
+  <ellipse cx="248" cy="706" rx="22" ry="17" fill="none" stroke="#3A6644" stroke-width="3.5"/>
+  <ellipse cx="296" cy="676" rx="40" ry="34" fill="#6AAF7A"/>
+  <circle cx="305" cy="664" r="8" fill="#1A1A1A"/>
+  <circle cx="308" cy="661" r="3.5" fill="white"/>
+  <circle cx="302" cy="664" r="15" fill="none" stroke="#5D4037" stroke-width="3.5"/>
+  <circle cx="322" cy="664" r="15" fill="none" stroke="#5D4037" stroke-width="3.5"/>
+  <line x1="317" y1="664" x2="307" y2="664" stroke="#5D4037" stroke-width="3.5"/>
+  <path d="M286 686 Q297 698 310 686" fill="none" stroke="#3A6644" stroke-width="3.5" stroke-linecap="round"/>
+  <ellipse cx="142" cy="726" rx="34" ry="20" fill="#6AAF7A" transform="rotate(-30 142 726)"/>
+  <ellipse cx="278" cy="730" rx="34" ry="20" fill="#6AAF7A" transform="rotate(30 278 730)"/>
+  <rect x="130" y="620" width="90" height="66" fill="#3A7BD5" rx="6"/>
+  <text x="175" y="648" text-anchor="middle" fill="white" font-size="20" font-family="sans-serif">TCP</text>
+  <text x="175" y="672" text-anchor="middle" fill="white" font-size="20" font-family="sans-serif">/IP</text>
+  <path d="M116 698 Q96 716 104 740" fill="none" stroke="#6AAF7A" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- 亀 2 (中央・学帽) -->
+  <ellipse cx="512" cy="694" rx="110" ry="72" fill="#5A6E8A"/>
+  <ellipse cx="512" cy="694" rx="88" ry="56" fill="#6D859E"/>
+  <ellipse cx="512" cy="672" rx="30" ry="21" fill="none" stroke="#4A5E7A" stroke-width="3.5"/>
+  <ellipse cx="472" cy="700" rx="25" ry="18" fill="none" stroke="#4A5E7A" stroke-width="3.5"/>
+  <ellipse cx="552" cy="700" rx="25" ry="18" fill="none" stroke="#4A5E7A" stroke-width="3.5"/>
+  <ellipse cx="606" cy="668" rx="46" ry="40" fill="#7A98B0"/>
+  <circle cx="616" cy="654" r="9" fill="#1A1A1A"/>
+  <circle cx="619" cy="651" r="3.5" fill="white"/>
+  <path d="M600 680 Q612 694 626 680" fill="none" stroke="#4A5E7A" stroke-width="3.5" stroke-linecap="round"/>
+  <rect x="568" y="620" width="80" height="18" fill="#1A1A1A" rx="4"/>
+  <ellipse cx="608" cy="620" rx="54" ry="13" fill="#222"/>
+  <rect x="606" y="600" width="6" height="22" fill="#555"/>
+  <rect x="596" y="596" width="26" height="10" fill="#555"/>
+  <rect x="620" y="594" width="3" height="18" fill="#888"/>
+  <ellipse cx="432" cy="726" rx="36" ry="22" fill="#7A98B0" transform="rotate(-30 432 726)"/>
+  <ellipse cx="590" cy="730" rx="36" ry="22" fill="#7A98B0" transform="rotate(30 590 730)"/>
+  <rect x="432" y="616" width="90" height="66" fill="#C0392B" rx="6"/>
+  <text x="477" y="644" text-anchor="middle" fill="white" font-size="22" font-family="sans-serif">OSPF</text>
+  <text x="477" y="668" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">guide</text>
+  <path d="M406 692 Q386 710 394 736" fill="none" stroke="#7A98B0" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- 亀 3 (右・ひらめき電球) -->
+  <ellipse cx="814" cy="700" rx="100" ry="66" fill="#7A5C3A"/>
+  <ellipse cx="814" cy="700" rx="80" ry="50" fill="#9A7A50"/>
+  <ellipse cx="814" cy="680" rx="28" ry="20" fill="none" stroke="#6A4C2A" stroke-width="3.5"/>
+  <ellipse cx="776" cy="706" rx="22" ry="17" fill="none" stroke="#6A4C2A" stroke-width="3.5"/>
+  <ellipse cx="852" cy="706" rx="22" ry="17" fill="none" stroke="#6A4C2A" stroke-width="3.5"/>
+  <ellipse cx="898" cy="676" rx="40" ry="34" fill="#B09060"/>
+  <circle cx="908" cy="664" r="8" fill="#1A1A1A"/>
+  <circle cx="911" cy="661" r="3.5" fill="white"/>
+  <path d="M892 688 Q902 684 912 688" fill="none" stroke="#6A4C2A" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="920" cy="624" r="32" fill="#FFD700" opacity="0.95"/>
+  <rect x="914" y="652" width="12" height="16" fill="#FFD700" rx="4"/>
+  <text x="920" y="640" text-anchor="middle" fill="#7A5500" font-size="34" font-weight="bold">!</text>
+  <line x1="920" y1="588" x2="920" y2="578" stroke="#FFD700" stroke-width="4" stroke-linecap="round"/>
+  <line x1="942" y1="596" x2="950" y2="588" stroke="#FFD700" stroke-width="4" stroke-linecap="round"/>
+  <line x1="898" y1="596" x2="890" y2="588" stroke="#FFD700" stroke-width="4" stroke-linecap="round"/>
+  <line x1="952" y1="618" x2="962" y2="614" stroke="#FFD700" stroke-width="4" stroke-linecap="round"/>
+  <line x1="888" y1="618" x2="878" y2="614" stroke="#FFD700" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="746" cy="726" rx="34" ry="20" fill="#B09060" transform="rotate(-30 746 726)"/>
+  <ellipse cx="882" cy="730" rx="34" ry="20" fill="#B09060" transform="rotate(30 882 730)"/>
+  <rect x="746" y="620" width="90" height="66" fill="#27AE60" rx="6"/>
+  <text x="791" y="648" text-anchor="middle" fill="white" font-size="22" font-family="sans-serif">BGP</text>
+  <text x="791" y="672" text-anchor="middle" fill="white" font-size="18" font-family="sans-serif">guide</text>
+  <path d="M720 698 Q700 716 708 740" fill="none" stroke="#B09060" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- アプリ名 -->
+  <text x="512" y="870" text-anchor="middle" fill="white" font-size="60" font-weight="500" font-family="sans-serif">Net.Intelligence</text>
+  <text x="512" y="940" text-anchor="middle" fill="#87CEEB" font-size="34" font-family="sans-serif">障害判断トレーニング</text>
+</svg>'''
+
+os.makedirs('assets/icon', exist_ok=True)
+
+with open('assets/icon/icon_source.svg', 'w') as f:
+    f.write(SVG_CONTENT)
+
+for size in [48, 72, 96, 144, 192, 512]:
+    cairosvg.svg2png(
+        bytestring=SVG_CONTENT.encode(),
+        write_to=f'assets/icon/icon_{size}.png',
+        output_width=size,
+        output_height=size,
+    )
+    print(f'Generated: icon_{size}.png')
+
+cairosvg.svg2png(
+    bytestring=SVG_CONTENT.encode(),
+    write_to='assets/icon/icon_1024.png',
+    output_width=1024,
+    output_height=1024,
+)
+print('Generated: icon_1024.png (Google Play用)')

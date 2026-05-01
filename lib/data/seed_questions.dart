@@ -333,4 +333,179 @@ const List<Question> kSeedQuestions = [
       studyReference: 'CCNP ENCOR: QoS設計・帯域制限（Policing）・NBAR',
     ),
   ),
+
+  // ━━ s_l3_001: デフォルトルート消失 / 問2 ━━━━━━━━━━━━━━
+
+  Question(
+    id: 'q_l3_001_2',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_001',
+    prompt: '監視ツールで確認: 拠点A→ISP間リンクはdown。\n次に確認するコマンドはどれですか？',
+    logLines: [
+      '監視ツール確認結果:',
+      '  branch-A → ISP: LINK DOWN (since 23:04:08)',
+      '  branch-A → HQ:  LINK UP',
+      '  HQ → ISP:       LINK UP',
+    ],
+    choices: [
+      Choice(
+        id: 'a', text: 'show ip route でデフォルトルートの有無を確認する',
+        isCorrect: true, scoreImpact: 100,
+        feedbackText: '正解！ ISP側リンクダウンでデフォルトルートが消えている可能性が高い。まずルートテーブルを確認します。',
+      ),
+      Choice(
+        id: 'b', text: 'show interfaces でエラーカウンターを確認する',
+        isCorrect: false, scoreImpact: 50,
+        feedbackText: '物理障害の詳細確認には有効ですが、まず「迂回できるか」を判断するためルートテーブルの確認が優先です。',
+      ),
+      Choice(
+        id: 'c', text: 'show ip bgp summary でBGPセッションを確認する',
+        isCorrect: false, scoreImpact: 50,
+        feedbackText: 'ISPとBGPを使っている場合は有効ですが、まず show ip route でルートの有無を確認するのが基本手順です。',
+      ),
+      Choice(
+        id: 'd', text: 'ping 8.8.8.8 でインターネット疎通を確認する',
+        isCorrect: false, scoreImpact: 0,
+        feedbackText: '既にInternet全断のアラートが出ています。pingで確認するより、原因特定と迂回経路確認を優先します。',
+      ),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ISP側リンクがダウンしていることが判明した。'
+          'BGP経由でISPからデフォルトルートを受け取っている構成では、'
+          'リンクダウンと同時にデフォルトルートがルートテーブルから消える。'
+          'show ip route 0.0.0.0 でデフォルトルートが存在するか確認するのが最短の切り分け。',
+      nextActions: [
+        'show ip route 0.0.0.0 でデフォルトルートの有無を確認',
+        'ルートが消えていれば: HQ経由の迂回ルートを手動で設定して暫定復旧',
+        '迂回後: ISPにリンク障害の報告を入れる',
+        '恒久対応: BGP設定の確認・バックアップ回線の検討',
+      ],
+      relatedCommands: [
+        'show ip route 0.0.0.0',
+        'show ip bgp summary',
+        'ip route 0.0.0.0 0.0.0.0 [HQ向けネクストホップ]',
+        'show interfaces [WAN-IF]',
+      ],
+      studyReference: 'CCNA: デフォルトルート・BGPとISP接続の基礎',
+    ),
+  ),
+
+  // ━━ s_l3_002: OSPFネイバー確立しない / 問1 ━━━━━━━━━━━━
+
+  Question(
+    id: 'q_l3_002_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_002',
+    prompt: '新規追加したRouter-Bのログを確認してください。\n何がOSPFネイバー確立を妨げているか選んでください。',
+    logLines: [
+      'Router-B# show ip ospf neighbor',
+      '(出力なし — ネイバーが存在しない)',
+      '',
+      'Router-B# show log | include OSPF',
+      'Apr 30 09:14:22 %OSPF-4-BAD_HELLO:',
+      '  Mismatched hello parameters from 10.0.0.1',
+      '  Dead interval: we need 40, they have 20',
+    ],
+    choices: [
+      Choice(
+        id: 'a', text: 'ケーブルが接続されていない',
+        isCorrect: false, scoreImpact: 0,
+        feedbackText: 'Helloパケットを受信できているので物理接続はあります。%OSPF-4-BAD_HELLOはHelloパケットを受信した証拠です。',
+      ),
+      Choice(
+        id: 'b', text: 'OSPFのDead Intervalの値が隣接ルーターと一致していない',
+        isCorrect: true, scoreImpact: 100,
+        feedbackText: '正解！ Dead Interval（Router-B: 40sec、隣接: 20sec）が不一致。OSPFネイバーの確立にはHello/Deadタイマーの一致が必須です。',
+      ),
+      Choice(
+        id: 'c', text: 'OSPFエリア番号が異なる',
+        isCorrect: false, scoreImpact: 0,
+        feedbackText: 'エリア番号の不一致なら "Mismatched area" のログが出ます。このログはDead Intervalの不一致を示しています。',
+      ),
+      Choice(
+        id: 'd', text: 'IPアドレスのサブネットが異なる',
+        isCorrect: false, scoreImpact: 0,
+        feedbackText: 'サブネット不一致なら同一セグメントでHelloパケットが届きません。Helloは届いているので、サブネットは合っています。',
+      ),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          '%OSPF-4-BAD_HELLOログは「Helloパケットを受信したが、パラメータが不一致」を示す。'
+          'Dead Interval（Router-B: 40sec、隣接: 20sec）が食い違っている。'
+          'OSPFのネイバー確立には Hello/Dead タイマーの完全一致が必須（HelloはDeadの1/4が標準）。',
+      nextActions: [
+        'Router-BのOSPFインターフェースのDead Intervalを確認する',
+        '隣接ルーターのDead Intervalと統一する（標準: Dead=40sec, Hello=10sec）',
+        '修正後: show ip ospf neighbor でFULL状態になることを確認する',
+      ],
+      relatedCommands: [
+        'show ip ospf interface GigabitEthernet0/0',
+        'interface GigabitEthernet0/0',
+        ' ip ospf dead-interval 40',
+        ' ip ospf hello-interval 10',
+        'show ip ospf neighbor',
+      ],
+      studyReference: 'CCNA: OSPFネイバー確立の8ステップ・Helloパラメータの要件',
+    ),
+  ),
+
+  // ━━ s_sec_001: DDoS / 問2（判断フロー） ━━━━━━━━━━━━━━━━
+
+  Question(
+    id: 'q_sec_001_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_sec_001',
+    prompt:
+        'DDoS攻撃を確認した（SYN-FLOOD 45000pps、CPU 98%）。\n'
+        '最初の対処として最も適切なものはどれですか？',
+    logLines: [],
+    choices: [
+      Choice(
+        id: 'a', text: '攻撃元のIPをACLでブロックし、ISPにブラックホール要求を検討する',
+        isCorrect: true, scoreImpact: 100,
+        feedbackText: '正解！ まず自社でACLによる緊急フィルタリングを実施し、同時にISP側でのブラックホール（null-route）を依頼する手順が正しい初動です。',
+      ),
+      Choice(
+        id: 'b', text: 'ルーターを再起動して接続テーブルをクリアする',
+        isCorrect: false, scoreImpact: -50,
+        feedbackText: '再起動は攻撃が続く限り同じ状態に戻ります。根本対処（フィルタリング）なしに再起動しても効果はなく、ダウンタイムが発生するだけです。',
+      ),
+      Choice(
+        id: 'c', text: '全インターフェースをシャットダウンして完全遮断する',
+        isCorrect: false, scoreImpact: -50,
+        feedbackText: '正常なユーザーも含めてサービス停止になります。DDoS対応の目的は「正常トラフィックを守りながら攻撃を遮断すること」です。',
+      ),
+      Choice(
+        id: 'd', text: '警察・JPCERT/CCに報告してから対処する',
+        isCorrect: false, scoreImpact: 0,
+        feedbackText: '報告は重要ですが、まず技術的な初動対応が先です。CPUが98%の状態を放置したまま連絡作業を優先するのは順序が逆です。',
+      ),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'DDoS対応の優先順位: '
+          '①技術的な緊急対応（ACLフィルタ・ISPへのブラックホール依頼） → '
+          '②影響範囲の確認と関係者への報告 → '
+          '③恒久対策（DDoS緩和サービス・WAF導入）。'
+          '再起動・全断・報告優先はいずれも被害を拡大または長期化させるリスクがある。',
+      nextActions: [
+        '攻撃元CIDRに対してACLを適用（deny ip 203.0.113.0/24 any）',
+        '上流ISPに緊急連絡してnull-route（ブラックホール）を依頼',
+        'SYN cookieが有効かどうか確認する（ip tcp adjust-mss）',
+        '接続タイムアウトを短縮してテーブル枯渇を軽減',
+        '攻撃収束後: JPCERT/CCへの報告・WAF/DDoS緩和サービスの導入検討',
+      ],
+      relatedCommands: [
+        'ip access-list extended BLOCK-DDOS',
+        ' deny ip 203.0.113.0 0.0.0.255 any',
+        ' permit ip any any',
+        'interface GigabitEthernet0/0',
+        ' ip access-group BLOCK-DDOS in',
+        'show processes cpu sorted',
+        'show ip conn count',
+      ],
+      studyReference: 'CCNP Security: DDoS軽減手法・ACL・null-routing・SYN cookie',
+    ),
+  ),
 ];

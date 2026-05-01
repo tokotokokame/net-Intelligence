@@ -23,6 +23,9 @@ dev_dependencies:
   flutter_lints: ^4.0.0
   build_runner: ^2.4.13
   riverpod_generator: ^2.4.3
+  sqflite_common_ffi: ^2.4.0+3
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/

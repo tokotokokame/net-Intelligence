@@ -29,6 +29,7 @@ final routerProvider = GoRouter(
       path: '/question/:id',
       builder: (_, state) => LogChallengeScreen(
         questionId: state.pathParameters['id']!,
+        scenarioId: state.uri.queryParameters['scenario'] ?? '',
       ),
     ),
     GoRoute(
