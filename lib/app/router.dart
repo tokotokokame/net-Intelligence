@@ -47,6 +47,6 @@ final routerProvider = GoRouter(
     ),
   ],
   errorBuilder: (context, state) => Scaffold(
-    body: Center(child: Text('ページが見つかりません: \${state.uri}')),
+    body: Center(child: Text('ページが見つかりません: ${state.uri}')),
   ),
 );

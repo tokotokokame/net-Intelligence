@@ -4,19 +4,16 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static ThemeData get darkTheme {
-    // Noto Sans JP: 日本語字形を正しく表示するためのフォント
-    // デフォルトのフォントフォールバックは中国語フォントを優先する場合があるため明示指定
-    final textTheme = GoogleFonts.notoSansJpTextTheme(
-      ThemeData.dark().textTheme,
-    );
-
-    return ThemeData(
+    final base = ThemeData(
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF00BCD4),
         brightness: Brightness.dark,
       ),
       useMaterial3: true,
-      textTheme: textTheme,
+    );
+
+    return base.copyWith(
+      textTheme: GoogleFonts.notoSansJpTextTheme(base.textTheme),
       appBarTheme: AppBarTheme(
         titleTextStyle: GoogleFonts.notoSansJp(
           fontSize: 20,

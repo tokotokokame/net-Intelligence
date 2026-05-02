@@ -67,7 +67,7 @@ class ScenarioDetailScreen extends ConsumerWidget {
             ...questions.asMap().entries.map((e) => _QuestionTile(
               index: e.key + 1,
               question: e.value,
-              onTap: () => context.push('/question/${e.value.id}?scenario=$scenarioId'),
+              onTap: () => context.push('/question/${e.value.id}?scenarioId=$scenarioId'),
             )),
             const SizedBox(height: 24),
             SizedBox(
@@ -78,7 +78,7 @@ class ScenarioDetailScreen extends ConsumerWidget {
                 onPressed: questions.isEmpty
                     ? null
                     : () => context.push(
-                        '/question/${questions.first.id}?scenario=$scenarioId'),
+                        '/question/${questions.first.id}?scenarioId=$scenarioId'),
               ),
             ),
           ],

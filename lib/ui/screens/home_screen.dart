@@ -59,7 +59,7 @@ class HomeScreen extends StatelessWidget {
                     onTap: () => cat.category == null
                         ? context.push('/scenarios')
                         : context.push(
-                            '/scenarios?category=\${cat.category!.name}'),
+                            '/scenarios?category=${cat.category!.name}'),
                   );
                 },
               ),
