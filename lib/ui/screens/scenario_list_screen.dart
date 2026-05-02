@@ -10,12 +10,14 @@ class ScenarioListScreen extends ConsumerWidget {
   final ScenarioCategory? filterCategory;
   const ScenarioListScreen({super.key, this.filterCategory});
 
-  String get _categoryLabel => filterCategory == null ? 'すべて' : switch (filterCategory!) {
-    ScenarioCategory.layer1layer2 => 'L1-L2 障害',
-    ScenarioCategory.layer3       => 'L3 障害',
-    ScenarioCategory.security     => 'セキュリティ',
-    ScenarioCategory.capacity     => 'キャパシティ',
-  };
+  String get _categoryLabel => filterCategory == null
+      ? 'すべて'
+      : switch (filterCategory!) {
+          ScenarioCategory.layer1layer2 => 'L1-L2 障害',
+          ScenarioCategory.layer3 => 'L3 障害',
+          ScenarioCategory.security => 'セキュリティ',
+          ScenarioCategory.capacity => 'キャパシティ',
+        };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,7 +41,8 @@ class ScenarioListScreen extends ConsumerWidget {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text('読み込みエラー: $e', textAlign: TextAlign.center,
+                  Text('読み込みエラー: $e',
+                      textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 13)),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -52,7 +55,7 @@ class ScenarioListScreen extends ConsumerWidget {
           );
         },
         data: (scenarios) {
-          developer.log('[ScenarioListScreen] Loaded \${scenarios.length} scenarios');
+          developer.log('[ScenarioListScreen] Loaded ${scenarios.length} scenarios');
           if (scenarios.isEmpty) {
             return Center(
               child: Padding(
@@ -81,7 +84,7 @@ class ScenarioListScreen extends ConsumerWidget {
             itemCount: scenarios.length,
             itemBuilder: (ctx, i) => ScenarioCard(
               scenario: scenarios[i],
-              onTap: () => context.push('/scenario/\${scenarios[i].id}'),
+              onTap: () => context.push('/scenario/${scenarios[i].id}'),
             ),
           );
         },
