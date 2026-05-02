@@ -14,6 +14,13 @@ void main() {
       expect(choice.isCorrect, isTrue);
       expect(choice.scoreImpact, greaterThan(0));
     });
+    test('誤答の選択肢はisCorrectがfalse', () {
+      const choice = Choice(
+        id: 'c2', text: '誤答', isCorrect: false,
+        scoreImpact: 0, feedbackText: '不正解です',
+      );
+      expect(choice.isCorrect, isFalse);
+    });
   });
 
   group('Question', () {
@@ -23,8 +30,10 @@ void main() {
         scenarioId: 's1', prompt: 'テスト問題',
         logLines: ['Apr 29 Router-A %OSPF: neighbor down'],
         choices: [
-          Choice(id: 'a', text: '誤答', isCorrect: false, scoreImpact: 0, feedbackText: ''),
-          Choice(id: 'b', text: '正解', isCorrect: true, scoreImpact: 100, feedbackText: ''),
+          Choice(id: 'a', text: '誤答', isCorrect: false,
+              scoreImpact: 0, feedbackText: ''),
+          Choice(id: 'b', text: '正解', isCorrect: true,
+              scoreImpact: 100, feedbackText: ''),
         ],
         explanation: Explanation(
           whatHappened: 'OSPFネイバーがダウンした',
@@ -37,19 +46,19 @@ void main() {
 
   group('ScenarioProgress', () {
     test('accuracyが正しく計算される', () {
-      final now = DateTime.now();
       final progress = ScenarioProgress(
         scenarioId: 's1',
         results: [
-          QuestionResult(questionId: 'q1', chosenChoiceId: 'b', isCorrect: true, score: 100, answeredAt: now),
-          QuestionResult(questionId: 'q2', chosenChoiceId: 'a', isCorrect: false, score: 0, answeredAt: now),
+          QuestionResult(questionId: 'q1', chosenChoiceId: 'b',
+              isCorrect: true, score: 100, answeredAt: DateTime.now()),
+          QuestionResult(questionId: 'q2', chosenChoiceId: 'a',
+              isCorrect: false, score: 0, answeredAt: DateTime.now()),
         ],
         totalScore: 100,
         isCompleted: false,
       );
       expect(progress.accuracy, equals(0.5));
     });
-
     test('resultsが空のときaccuracyは0', () {
       const progress = ScenarioProgress(
         scenarioId: 's1',
@@ -57,7 +66,7 @@ void main() {
         totalScore: 0,
         isCompleted: false,
       );
-      expect(progress.accuracy, equals(0));
+      expect(progress.accuracy, equals(0.0));
     });
   });
 }
