@@ -215,7 +215,6 @@ class _CategoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (accuracy * 100).round();
     final color = accuracy >= 0.8
         ? Colors.green
         : accuracy >= 0.5 ? Colors.orange : Colors.red;
@@ -232,7 +231,7 @@ class _CategoryRow extends StatelessWidget {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: accuracy,
-          backgroundColor: Colors.grey.withOpacity(0.2),
+          backgroundColor: Colors.grey.withValues(alpha: 0.2),
           valueColor: AlwaysStoppedAnimation<Color>(color),
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
