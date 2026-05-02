@@ -332,7 +332,7 @@ Issue・Pull Request を歓迎します。詳細は [CONTRIBUTING.md](CONTRIBUTI
 
 <div align="center">
 
-**Net.Intelligence** — 黒板の前で勉強する亀たちのように、コツコツ学ぼう 🐢
+**Net.Intelligence** — 亀たちのように、コツコツ１歩ずつ進もう 🐢
 
 Made with using Flutter
 
