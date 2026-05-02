@@ -13,8 +13,7 @@ class ProgressScreen extends ConsumerWidget {
   static Map<String, String> _buildQuestionCategoryMap() {
     final map = <String, String>{};
     for (final q in kSeedQuestions) {
-      final scenario =
-          kSeedScenarios.where((s) => s.id == q.scenarioId).firstOrNull;
+      final scenario = kSeedScenarios.where((s) => s.id == q.scenarioId).firstOrNull;
       if (scenario != null) map[q.id] = scenario.category.name;
     }
     return map;
@@ -29,13 +28,21 @@ class ProgressScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('習熟度マップ')),
       body: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 16),
+        padding: EdgeInsets.fromLTRB(
+          16, 16, 16,
+          MediaQuery.of(context).padding.bottom + 16,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 総スコア
             totalScoreAsync.when(
-              loading: () => const SizedBox(),
-              error: (e, _) => const SizedBox(),
+              loading: () => const SizedBox(height: 80,
+                  child: Center(child: CircularProgressIndicator())),
+              error: (e, _) {
+                developer.log('[ProgressScreen] score error: \$e');
+                return const _ScoreCard(totalScore: 0);
+              },
               data: (score) => _ScoreCard(totalScore: score),
             ),
             const SizedBox(height: 24),
@@ -44,12 +51,36 @@ class ProgressScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             accuracyAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) {
-                developer.log('[ProgressScreen] Error: $e');
-                return Center(child: Text('エラー: $e'));
+              error: (e, st) {
+                developer.log('[ProgressScreen] accuracy error: \$e\n\$st');
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.orange, size: 48),
+                        const SizedBox(height: 12),
+                        Text('データ読み込みエラー:\n\$e',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12)),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () {
+                            ref.invalidate(categoryAccuracyProvider);
+                            ref.invalidate(totalScoreProvider);
+                          },
+                          child: const Text('再試行'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
               data: (accuracy) {
-                if (accuracy.isEmpty) return const _EmptyProgressView();
+                developer.log('[ProgressScreen] accuracy loaded: \$accuracy');
+                if (accuracy.isEmpty) {
+                  return const _EmptyProgressView();
+                }
                 return Column(children: [
                   _AccuracyBarChart(accuracy: accuracy),
                   const SizedBox(height: 16),
@@ -81,7 +112,7 @@ class _ScoreCard extends StatelessWidget {
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('累計スコア',
               style: TextStyle(fontSize: 13, color: Colors.grey)),
-          Text('$totalScore pt',
+          Text('\$totalScore pt',
               style: const TextStyle(
                   fontSize: 28, fontWeight: FontWeight.bold)),
         ]),
@@ -114,28 +145,26 @@ class _AccuracyBarChart extends StatelessWidget {
   final Map<String, double> accuracy;
   const _AccuracyBarChart({required this.accuracy});
 
-  static const _categoryLabels = {
+  static const _labels = {
     'layer1layer2': 'L1-L2',
-    'layer3': 'L3',
-    'security': 'セキュリティ',
-    'capacity': 'キャパシティ',
+    'layer3':       'L3',
+    'security':     'セキュリティ',
+    'capacity':     'キャパシティ',
   };
 
   @override
   Widget build(BuildContext context) {
-    final bars = ScenarioCategory.values.map((cat) {
-      final acc = accuracy[cat.name] ?? 0.0;
-      return BarChartGroupData(x: cat.index, barRods: [
+    final bars = ScenarioCategory.values.asMap().entries.map((e) {
+      final acc = accuracy[e.value.name] ?? 0.0;
+      return BarChartGroupData(x: e.key, barRods: [
         BarChartRodData(
           toY: acc * 100,
           width: 40,
           color: acc >= 0.8
               ? Colors.green
-              : acc >= 0.5
-                  ? Colors.orange
-                  : Colors.red,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(4)),
+              : acc >= 0.5 ? Colors.orange : Colors.red,
+          borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(4)),
         ),
       ]);
     }).toList();
@@ -146,25 +175,20 @@ class _AccuracyBarChart extends StatelessWidget {
         maxY: 100,
         barGroups: bars,
         titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (v, _) => Text(
-                _categoryLabels[ScenarioCategory.values[v.toInt()].name] ?? '',
-                style: const TextStyle(fontSize: 10),
-              ),
+          bottomTitles: AxisTitles(sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: (v, _) => Text(
+              _labels[ScenarioCategory.values[v.toInt()].name] ?? '',
+              style: const TextStyle(fontSize: 10),
             ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (v, _) => Text(
-                '${v.toInt()}%',
-                style: const TextStyle(fontSize: 10),
-              ),
-              reservedSize: 36,
-            ),
-          ),
+          )),
+          leftTitles: AxisTitles(sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: (v, _) =>
+                Text('\${v.toInt()}%',
+                    style: const TextStyle(fontSize: 10)),
+            reservedSize: 36,
+          )),
           topTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(
@@ -184,9 +208,9 @@ class _CategoryRow extends StatelessWidget {
 
   static const _labels = {
     ScenarioCategory.layer1layer2: 'L1-L2 障害',
-    ScenarioCategory.layer3: 'L3 障害',
-    ScenarioCategory.security: 'セキュリティインシデント',
-    ScenarioCategory.capacity: 'キャパシティ・パフォーマンス',
+    ScenarioCategory.layer3:       'L3 障害',
+    ScenarioCategory.security:     'セキュリティインシデント',
+    ScenarioCategory.capacity:     'キャパシティ・パフォーマンス',
   };
 
   @override
@@ -194,25 +218,21 @@ class _CategoryRow extends StatelessWidget {
     final pct = (accuracy * 100).round();
     final color = accuracy >= 0.8
         ? Colors.green
-        : accuracy >= 0.5
-            ? Colors.orange
-            : Colors.red;
+        : accuracy >= 0.5 ? Colors.orange : Colors.red;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(_labels[category] ?? category.name,
-                style: const TextStyle(fontSize: 14)),
-            Text('$pct%',
-                style: TextStyle(fontWeight: FontWeight.bold, color: color)),
-          ],
-        ),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(_labels[category] ?? category.name,
+              style: const TextStyle(fontSize: 14)),
+          Text('\$pct%',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: color)),
+        ]),
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: accuracy,
-          backgroundColor: Colors.grey.withValues(alpha: 0.2),
+          backgroundColor: Colors.grey.withOpacity(0.2),
           valueColor: AlwaysStoppedAnimation<Color>(color),
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
