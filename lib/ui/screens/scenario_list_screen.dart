@@ -23,6 +23,8 @@ class ScenarioListScreen extends ConsumerWidget {
         data: (scenarios) => scenarios.isEmpty
             ? const Center(child: Text('シナリオがありません'))
             : ListView.builder(
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).padding.bottom + 8),
                 itemCount: scenarios.length,
                 itemBuilder: (ctx, i) => ScenarioCard(
                   scenario: scenarios[i],
