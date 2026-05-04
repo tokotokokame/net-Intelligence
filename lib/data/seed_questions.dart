@@ -3220,4 +3220,1835 @@ const List<Question> kSeedQuestions = [
       studyReference: 'VMware vSphere Security Configuration Guide / IPA「仮想化基盤のセキュリティ対策」/ ESXiArgs対策ガイド',
     ),
   ),
+
+  // ━━ L1-L2 追加問題 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Question(
+    id: 'q_l2_003_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_003',
+    prompt: '以下のSyslogからスイッチのポート状態を確認してください。何が起きていますか？',
+    logLines: [
+      'SW-2# show spanning-tree vlan 1',
+      'VLAN0001',
+      '  Root ID  Priority 32769  Address 0011.2233.4455',
+      '  Root port: Gi0/1  Cost: 4',
+      '',
+      '  Interface  Role  Sts  Cost  Prio',
+      '  Gi0/0      Desg  FWD  4     128',
+      '  Gi0/1      Root  FWD  4     128',
+      '  Gi0/2      Altn  BLK  4     128  ← ブロッキング',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'Gi0/2ポートが物理的に断線している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'BLKはBlocking状態を意味します。物理断線ならDownになります。STPが論理的にブロックしています。'),
+      Choice(id: 'b', text: 'STPがループ防止のためGi0/2をブロッキング状態にしている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ Altn（代替）ポートがBLK（ブロッキング）状態です。STPがループ防止のため論理的にポートを遮断しています。'),
+      Choice(id: 'c', text: 'VLANの設定が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'VLAN設定ミスならVLANが存在しないエラーが出ます。このログはSTPの正常動作を示しています。'),
+      Choice(id: 'd', text: 'スイッチのファームウェアが古い',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ファームウェアの問題とSTPのブロッキングは無関係です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'SW-2のGi0/2ポートがSTP（スパニングツリープロトコル）によってBLK（ブロッキング）状態になっている。'
+          'これはループ防止のための正常動作。代替（Altn）ポートとして待機しており、'
+          'ルートポートやDesignatedポートが障害になれば自動的にFWD（転送）状態に移行する。',
+      nextActions: [
+        'ループが発生していないか確認（show mac address-table）',
+        'ルートブリッジの位置が意図通りか確認（show spanning-tree）',
+        '必要であればPortFastやRSTPで収束時間を短縮する',
+        'トポロジ変更を最小化するためのSTP設計を見直す',
+      ],
+      relatedCommands: [
+        'show spanning-tree vlan 1',
+        'show spanning-tree detail',
+        'spanning-tree portfast  (エッジポートに設定)',
+        'show mac address-table',
+      ],
+      studyReference: 'CCNA: スパニングツリープロトコル（STP・RSTP）/ ポート状態遷移',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_003_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l2_003',
+    prompt: 'STPブロッキングによりPC間の通信ができない。\n最も適切な対処はどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: 'ブロッキングポートを強制的にForwardingにする（spanning-tree portfast）',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: 'PortFastはループが発生しないエッジポート（PCなど）専用です。スイッチ間リンクに設定するとブロードキャストストームが発生します。'),
+      Choice(id: 'b', text: 'ルートブリッジの優先度を調整してトポロジを意図した設計に変更する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ STPは自動的に最適なトポロジを計算しますが、設計者の意図通りになるようルートブリッジ選出を制御するのが正しいアプローチです。'),
+      Choice(id: 'c', text: 'STPを無効にしてすべてのポートをForwardingにする',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: 'STPを無効にするとループが発生してブロードキャストストームになります。絶対に行ってはいけません。'),
+      Choice(id: 'd', text: 'ケーブルを抜いて接続し直す',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '物理的な接続問題ではありません。STPの設計問題なので、論理的な設定変更が必要です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'STPのルートブリッジ選出は最も低いBridge ID（優先度+MACアドレス）で行われる。'
+          'デフォルト優先度（32768）のままだとMACアドレスの小さいスイッチがルートブリッジになるが、'
+          'これが設計上最適な場所とは限らない。'
+          '意図したスイッチをルートブリッジにするため優先度を下げる（例: 4096）。',
+      nextActions: [
+        'どのスイッチをルートブリッジにすべきか設計を確認する',
+        '指定スイッチの優先度を下げる（spanning-tree vlan 1 priority 4096）',
+        '変更後にshow spanning-treeで確認する',
+        'バックアップルートブリッジも設定しておく（priority 8192）',
+      ],
+      relatedCommands: [
+        'spanning-tree vlan 1 priority 4096',
+        'spanning-tree vlan 1 root primary',
+        'spanning-tree vlan 1 root secondary',
+        'show spanning-tree vlan 1 detail',
+      ],
+      studyReference: 'CCNA: STPルートブリッジ選出・優先度設定',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_004_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_004',
+    prompt: '以下のインターフェース統計から通信劣化の原因を選んでください。',
+    logLines: [
+      'Router-A# show interfaces GigabitEthernet0/0',
+      '  GigabitEthernet0/0 is up, line protocol is up',
+      '  Duplex: Half, Speed: 1000Mb/s',
+      '  Input errors: 45,231  CRC: 44,891',
+      '  Output errors: 0',
+      '',
+      'SW-1# show interfaces GigabitEthernet0/24',
+      '  Duplex: Full, Speed: 1000Mb/s',
+      '  Input errors: 1,204',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'ケーブルが断線しかかっている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '断線ならリンクがDownになります。リンクはUpでCRCエラーが多発しているのはデュプレックス不一致の典型です。'),
+      Choice(id: 'b', text: 'Router-AとSW-1のデュプレックス設定が不一致（Half vs Full）',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ Router-AがHalf duplex、SW-1がFull duplexです。この不一致でRouter-A側にCRCエラーが大量発生します。'),
+      Choice(id: 'c', text: 'スイッチのポートが故障している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ポート故障ならOutput errorsも増加するかリンク自体がダウンします。このパターンはデュプレックスミスマッチの典型です。'),
+      Choice(id: 'd', text: 'IPアドレスの設定が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'IPアドレスはL3の問題で、CRCエラーはL1/L2の問題です。レイヤーが異なります。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'デュプレックスミスマッチ: Router-A側がHalf duplex、SW-1側がFull duplex。'
+          'Full側は同時送受信するが、Half側はキャリアを検知して送信を制御（CSMA/CD）するため'
+          'Full側が送信中でもHalf側が送信してしまい衝突が発生。CRCエラーとして計上される。'
+          'Auto-Negotiationの失敗や手動設定ミスが原因。',
+      nextActions: [
+        '両側を同じデュプレックスに揃える（推奨: 両側ともauto）',
+        '片側だけ固定している場合は両側とも同じ値に固定する',
+        '変更後にshow interfacesでエラーカウンターがリセットされることを確認',
+        'clear counters コマンドで基準をリセットして再確認する',
+      ],
+      relatedCommands: [
+        'interface GigabitEthernet0/0',
+        ' duplex auto',
+        ' speed auto',
+        'show interfaces GigabitEthernet0/0',
+        'clear counters GigabitEthernet0/0',
+      ],
+      studyReference: 'CCNA: デュプレックス・Auto-Negotiation・エラーカウンターの読み方',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_005_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_005',
+    prompt: '以下のSyslogから何が起きているか選んでください。',
+    logLines: [
+      'SW-1 %SW_MATM-4-MACFLAP_NOTIF: Host 00:11:22:33:44:55',
+      '  in vlan 1 is flapping between port Gi0/1 and Gi0/2',
+      'SW-1 %SW_MATM-4-MACFLAP_NOTIF: Host 00:AA:BB:CC:DD:EE',
+      '  in vlan 1 is flapping between port Gi0/1 and Gi0/3',
+      'SW-1 %STORM_CONTROL-3-SHUTDOWN: A broadcast storm',
+      '  was detected on Gi0/2. The interface has been shutdown.',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'MACアドレスが重複している機器がある',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'MACフラッピングはアドレス重複でも起きますが、複数のMACが同時にフラッピングしており、ブロードキャストストームも発生しています。ループが原因です。'),
+      Choice(id: 'b', text: 'ネットワークループが発生してブロードキャストストームになっている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 複数MACのフラッピングとブロードキャストストームの同時発生はループの典型です。STPが動作していないか、STP未対応のHubが混在している可能性があります。'),
+      Choice(id: 'c', text: 'ハッカーがMACスプーフィング攻撃をしている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'MACスプーフィングも可能性はありますが、ブロードキャストストームの同時発生はループの方が可能性が高いです。まずループを疑います。'),
+      Choice(id: 'd', text: 'スイッチのMACテーブルが満杯になった',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'MACテーブル満杯ならフラッディングが増えますが、フラッピングログとストームの組み合わせはループを示しています。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ネットワークループによるブロードキャストストーム。'
+          'ループが存在すると同一フレームが無限に転送され、'
+          'スイッチは同一MACを複数ポートで検出してMACテーブルが不安定になる（フラッピング）。'
+          'ブロードキャストが指数的に増加してストームになり、SW-1がポートをシャットダウンした。',
+      nextActions: [
+        'ループの原因となっているケーブルを特定して切断する',
+        'STPが有効になっているか確認する（show spanning-tree）',
+        'STP未対応のHubやUPSが混在していないか確認する',
+        'Storm Controlを有効にして再発防止する',
+        'BPDUGuardを設定してPortFastポートでのSTPフレーム受信を防ぐ',
+      ],
+      relatedCommands: [
+        'show spanning-tree',
+        'show mac address-table',
+        'storm-control broadcast level 20',
+        'spanning-tree bpduguard enable',
+      ],
+      studyReference: 'CCNA: ブロードキャストストーム・STP・ループ防止設計',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_005_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l2_005',
+    prompt: 'ブロードキャストストームが発生中。ネットワークが完全に停止している。\n最初にとるべき行動はどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: 'スイッチを再起動する',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: '再起動してもループが残っていれば同じ状態になります。まずループの原因を物理的に排除する必要があります。'),
+      Choice(id: 'b', text: '怪しいケーブルを1本ずつ抜いてループ箇所を特定・除去する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ ストーム中は迅速な物理的対応が最優先。1本ずつ抜くことでループ箇所を特定できます。ストームが収まったら根本設計を見直します。'),
+      Choice(id: 'c', text: 'すべてのスイッチのSTPを無効にする',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: 'STPを無効にするとループをさらに悪化させます。逆効果です。'),
+      Choice(id: 'd', text: 'まず監視ツールでどのポートにエラーが多いか確認する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ストーム中は監視ツール自体も応答しない場合があります。物理的な対応を先行させます。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ブロードキャストストーム発生時の対応優先順位：'
+          '①物理的にループを切断（ケーブルを抜く）→ ②ストームが収まったことを確認 →'
+          '③ループの原因を特定（不正なHUB接続・誤配線など）→ ④STP設計の見直し。',
+      nextActions: [
+        '怪しいポートのLANケーブルを1本ずつ抜く',
+        'ストーム収束後にshow spanning-treeでトポロジを確認',
+        'HubやSTP非対応機器の混在を排除する',
+        'BPDUGuard・Storm Controlを設定して再発防止',
+      ],
+      relatedCommands: [
+        'interface GigabitEthernet0/2',
+        ' shutdown  (疑わしいポートを手動で落とす)',
+        'show spanning-tree',
+        'show interfaces counters errors',
+      ],
+      studyReference: 'CCNA: ブロードキャストストーム対応・ループ防止設計',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_006_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_006',
+    prompt: 'VLAN1の通信がタグなしで転送されています。何が問題ですか？',
+    logLines: [
+      'SW-A# show interfaces Gi0/1 trunk',
+      '  Native VLAN: 1',
+      '',
+      'SW-B# show interfaces Gi0/1 trunk',
+      '  Native VLAN: 100',
+      '',
+      '# パケットキャプチャ結果',
+      '802.1Q tagged: VLAN10, VLAN20 → 正常転送',
+      '802.1Q untagged (VLAN1) → SW-Bでは VLAN100 として処理される',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'トランクポートの速度が違う',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '速度の違いはトランク転送には影響しません。ネイティブVLANの不一致が問題です。'),
+      Choice(id: 'b', text: 'SW-AとSW-BのネイティブVLANが不一致でVLAN1のフレームがVLAN100に混入する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ ネイティブVLANはタグなしで転送されます。SW-AのネイティブVLAN1とSW-BのネイティブVLAN100が違うため、VLAN1のフレームがVLAN100に入ります。セキュリティリスクになります。'),
+      Choice(id: 'c', text: 'VLANがトランクポートで許可されていない',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'VLAN10・20は正常転送されています。VLAN1（ネイティブVLAN）の扱いが問題です。'),
+      Choice(id: 'd', text: 'STPがトランクポートをブロックしている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'トランクポートはForwarding状態です（他のVLANは転送されています）。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ネイティブVLAN不一致（VLAN Hopping攻撃の原因にもなる）。'
+          '802.1QのネイティブVLANはタグなしで転送されるため、'
+          '両端のネイティブVLANが異なると意図しないVLANにフレームが混入する。'
+          'セキュリティ上の脆弱性にもなるため、ネイティブVLANは使用しないVLAN番号に統一する。',
+      nextActions: [
+        '両スイッチのネイティブVLANを同じ値に統一する（推奨: 未使用のVLAN番号）',
+        'switchport trunk native vlan 999 （使用しないVLAN番号を指定）',
+        '変更後にshow interfaces trunk で確認',
+        'CDPでネイティブVLAN不一致の警告が出るか確認する',
+      ],
+      relatedCommands: [
+        'interface GigabitEthernet0/1',
+        ' switchport trunk native vlan 999',
+        'show interfaces trunk',
+        'show cdp neighbors detail  (ネイティブVLAN不一致警告確認)',
+      ],
+      studyReference: 'CCNA: 802.1Q ネイティブVLAN・VLAN Hopping攻撃',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_007_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_007',
+    prompt: '以下のSyslogからEtherChannelが確立しない原因を選んでください。',
+    logLines: [
+      'SW-A# show etherchannel summary',
+      '  Group 1  Protocol: LACP',
+      '  Po1(SU)  Gi0/0(P) Gi0/1(P)',
+      '',
+      'SW-B# show etherchannel summary',
+      '  Group 1  Protocol: PAgP',
+      '  Po1(SD)  Gi0/0(D) Gi0/1(D)  ← D=独立（未束縛）',
+      '',
+      'SW-B %EC-5-CANNOT_BUNDLE: Gi0/1 is not compatible',
+      '  with Gi0/0 and will be suspended',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'EtherChannelのグループ番号が違う',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'グループ番号はローカルの識別子で両端が一致している必要はありません。プロトコルの不一致が問題です。'),
+      Choice(id: 'b', text: 'SW-AがLACP、SW-BがPAgPでプロトコルが不一致のためネゴシエーションできない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ LACPとPAgPは異なるプロトコルで互換性がありません。両端を同じプロトコル（またはboth側をon）に揃える必要があります。'),
+      Choice(id: 'c', text: 'ポートの速度が異なる',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '速度不一致ならERROR-DISABLEになります。このケースはプロトコル不一致が原因です。'),
+      Choice(id: 'd', text: 'VLANの設定が違う',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'VLAN不一致も原因になりますが、ログにはプロトコル不一致（LACP vs PAgP）が明示されています。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'EtherChannelのプロトコル不一致。SW-AはLACP（IEEE 802.3ad）、SW-BはPAgP（Cisco独自）。'
+          '異なるプロトコルではネゴシエーションできないためポートが独立状態（D）になる。'
+          '解決策: 両端を同じプロトコルに揃えるか、両端をstatic（on）にする。',
+      nextActions: [
+        'SW-BのプロトコルをLACPに変更する',
+        'または両側をonに設定してstatic EtherChannelにする',
+        '変更後にshow etherchannel summaryでSU状態を確認',
+        '両端の設定（速度・VLAN・デュプレックス）が一致しているか確認する',
+      ],
+      relatedCommands: [
+        'interface range GigabitEthernet0/0-1',
+        ' channel-group 1 mode active  (LACP)',
+        ' channel-group 1 mode on      (static)',
+        'show etherchannel summary',
+        'show lacp neighbor',
+      ],
+      studyReference: 'CCNP ENCOR: EtherChannel・LACP・PAgP・ポートチャネル',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_007_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l2_007',
+    prompt:
+        'EtherChannelが確立しない。LACPに統一したが今度は別のエラーが出た。\n'
+        'show etherchannel summary: "Gi0/0(P) Gi0/1(s)" — Gi0/1がsuspend状態。\n'
+        '次に確認すべきことはどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: '両ポートのスピード・デュプレックス・VLANが一致しているか確認する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ EtherChannelでsuspend(s)になる主な原因はポート間の設定不一致（速度・デュプレックス・VLAN・STP設定など）です。'),
+      Choice(id: 'b', text: 'ケーブルを交換する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '物理障害ならDownになります。suspend状態は設定の論理的な不一致を示しています。'),
+      Choice(id: 'c', text: 'スイッチを再起動する',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: '設定の不一致は再起動では解決しません。原因を特定して設定を修正する必要があります。'),
+      Choice(id: 'd', text: 'EtherChannelのグループ番号を変更する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'グループ番号は関係ありません。ポート間の設定一致性を確認してください。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'EtherChannelのメンバーポートはすべて同じ設定（速度・デュプレックス・VLAN・トランク設定・STP設定）が必要。'
+          '1つでも異なるとsuspend状態になる。'
+          'show etherchannel detail コマンドで不一致の詳細を確認できる。',
+      nextActions: [
+        'show etherchannel detail でsuspendの理由を確認',
+        '各ポートのshow interfaces / show interfaces trunk を比較',
+        '不一致の設定を揃える',
+        '変更後に no channel-group で一旦外してから再追加する',
+      ],
+      relatedCommands: [
+        'show etherchannel detail',
+        'show interfaces GigabitEthernet0/1 trunk',
+        'show interfaces GigabitEthernet0/0 trunk',
+        'show running-config interface GigabitEthernet0/1',
+      ],
+      studyReference: 'CCNP ENCOR: EtherChannel トラブルシューティング',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_008_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_008',
+    prompt: '以下のPoEスイッチのログから無線APが再起動を繰り返す原因を選んでください。',
+    logLines: [
+      'SW-PoE# show power inline',
+      '  Available:  370.0W  Used: 368.4W  Remaining: 1.6W',
+      '',
+      '  Interface  Config  Oper     Power   Device',
+      '  Gi0/1      auto    on       30.0W   Cisco AP-3802',
+      '  Gi0/2      auto    on       30.0W   Cisco AP-3802',
+      '  Gi0/3      auto    on       30.0W   Cisco AP-3802',
+      '  Gi0/4      auto    on       25.4W   Cisco AP-1852',
+      '  ...',
+      '  Gi0/12     auto    off      0.0W    --- (給電不足)',
+      '',
+      'SW-PoE %ILPOWER-5-IEEE_DISCONNECT: Interface Gi0/12',
+      '  disconnected due to insufficient power',
+    ],
+    choices: [
+      Choice(id: 'a', text: '無線APのファームウェアが古い',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ファームウェアの問題なら特定のAPだけ再起動します。PoE給電不足のログが出ています。'),
+      Choice(id: 'b', text: 'PoEスイッチの給電予算が不足してGi0/12への給電ができない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 利用可能電力370Wに対して368.4W使用中で残り1.6W。Gi0/12のAPに必要な電力が確保できず給電が切断されています。'),
+      Choice(id: 'c', text: 'LANケーブルの品質が悪い',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ケーブル品質の問題ならshow interfacesでエラーが出ます。PoE給電不足が直接の原因です。'),
+      Choice(id: 'd', text: 'VLANの設定ミス',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'VLAN問題ならshow interfacesでVLAN関連のエラーが出ます。ここはPoE電力予算の問題です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'PoEスイッチの給電予算（370W）がほぼ満杯で、Gi0/12のAPへの給電ができない状態。'
+          'APは電力が供給されないため起動できず再起動を繰り返している。'
+          '解決策: ①スイッチの給電予算を増やす（上位機種への変更）②優先度設定で重要なAPを優先③不要な機器のPoEをoffに。',
+      nextActions: [
+        'show power inline で全ポートの消費電力を確認',
+        '不要な機器のPoEを無効化（power inline never）',
+        '重要なAPのPoE優先度を上げる（power inline port priority high）',
+        '中長期的にPoE予算の大きいスイッチへの移行を検討',
+      ],
+      relatedCommands: [
+        'show power inline',
+        'interface GigabitEthernet0/12',
+        ' power inline port priority high',
+        'power inline never  (PoE不要ポートに設定)',
+        'show power inline consumption',
+      ],
+      studyReference: 'CCNA: PoE・IEEE 802.3af/at/bt・給電優先度管理',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_009_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_009',
+    prompt: 'CDP情報を確認したところ、ネットワーク図にない機器が発見されました。\nこの状況の対応として最も適切なものはどれですか？',
+    logLines: [
+      'SW-Core# show cdp neighbors detail',
+      '  Device ID: SW-Legitimate (known)',
+      '    IP: 192.168.1.2  Platform: Cisco WS-C2960',
+      '',
+      '  Device ID: UNKNOWN-DEVICE-001  ← 不明',
+      '    IP: 192.168.1.250  Platform: TP-Link TL-SG108',
+      '    Interface: GigabitEthernet0/8',
+      '    (CDPはCisco独自だが一部の互換機器も送信)',
+    ],
+    choices: [
+      Choice(id: 'a', text: '不審な機器を確認せずにそのまま放置する',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: '未承認の機器放置は情報漏洩・セキュリティインシデントの起点になります。必ず調査が必要です。'),
+      Choice(id: 'b', text: 'Gi0/8ポートを即時シャットダウンし、該当機器の設置場所と設置者を調査する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 未承認機器はまず隔離（ポートシャットダウン）し、その後設置経緯を調査します。シャドーITや悪意ある機器の可能性があります。'),
+      Choice(id: 'c', text: 'IPアドレスをpingして生存確認だけする',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '疎通確認だけでは不十分です。未承認機器はネットワークから隔離して調査する必要があります。'),
+      Choice(id: 'd', text: 'CDPを全ポートで無効化する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'CDPの無効化は運用上の問題を引き起こします。まず不審ポートを閉じて調査します。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ネットワーク図に存在しない機器（TP-Link スイッチ）がGi0/8に接続されている。'
+          'シャドーIT（IT部門未承認の機器）の可能性がある。'
+          '未承認スイッチにより追加のデバイスが接続されてアクセス制御が機能しなくなるリスクがある。',
+      nextActions: [
+        'Gi0/8を即時シャットダウンして隔離する',
+        '機器のMACアドレスとIPを記録して証跡を残す',
+        '設置場所（Gi0/8の物理的な先）を確認して設置者を特定する',
+        '802.1X認証の導入を検討して未承認機器の接続を防止する',
+        'CDP/LLDPを外部向けポートで無効化する（no cdp enable）',
+      ],
+      relatedCommands: [
+        'interface GigabitEthernet0/8',
+        ' shutdown',
+        'show cdp neighbors detail',
+        'show mac address-table interface GigabitEthernet0/8',
+        'no cdp enable  (外部向けポートはCDP無効化)',
+      ],
+      studyReference: 'CCNA Security: ポートセキュリティ・802.1X・シャドーIT対策',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_010_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l2_010',
+    prompt: '小さなpingは通るが大きなファイル転送だけ失敗します。\nログから原因を選んでください。',
+    logLines: [
+      '# pingテスト結果',
+      'ping 10.0.0.1 size 100  → 成功 (RTT: 2ms)',
+      'ping 10.0.0.1 size 1400 → 成功 (RTT: 3ms)',
+      'ping 10.0.0.1 size 1500 → タイムアウト',
+      'ping 10.0.0.1 size 1500 df-bit → タイムアウト',
+      '',
+      '# tracerouteで中間ルーターのMTU確認',
+      'Router-A: MTU 9000 (ジャンボフレーム設定)',
+      'Router-B: MTU 1500 (標準)',
+      'Router-C: MTU 9000',
+    ],
+    choices: [
+      Choice(id: 'a', text: '帯域が不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '帯域不足なら大きいファイルも小さいファイルも遅くなります。サイズ1500以上だけ失敗するのはMTUの問題です。'),
+      Choice(id: 'b', text: 'Router-BのMTU(1500)がRouter-A/CのMTU(9000)より小さく、DFビット付きパケットが破棄されている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ MTUブラックホール。Router-BはMTU1500なのに上流からジャンボフレームが来るとICMP Fragmentationが必要だが、DFビット付きで破棄されます。'),
+      Choice(id: 'c', text: 'ファイアウォールが大きいパケットをブロックしている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'FWブロックなら拒否ログが出ます。経路のMTU不一致がPMTUDを妨げているのが原因です。'),
+      Choice(id: 'd', text: 'DNSの名前解決が失敗している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DNSはL7の問題で、パケットサイズによる失敗とは無関係です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'MTUブラックホール問題。Router-AとCはジャンボフレーム(MTU 9000)設定だが、'
+          '途中のRouter-BはMTU 1500。DFビット付きの大きなパケットがRouter-Bで破棄されるが、'
+          'ICMPエラーがブロックされているためPMTUDが機能せず送信元が気づけない。',
+      nextActions: [
+        '全ルーターのMTU設定を統一する（全て1500または全てジャンボフレーム）',
+        '統一できない場合はMSS調整でTCPセグメントサイズを制限する',
+        'ip tcp adjust-mss 1452 をインターフェースに設定',
+        'ICMPのFragmentation Neededがブロックされていないか確認する',
+      ],
+      relatedCommands: [
+        'show interfaces GigabitEthernet0/0 | include MTU',
+        'ip tcp adjust-mss 1452',
+        'ping 10.0.0.1 size 1500 df-bit',
+        'show ip interface | include MTU',
+      ],
+      studyReference: 'CCNP ENCOR: MTU・PMTUD・MSS・ジャンボフレーム',
+    ),
+  ),
+
+  Question(
+    id: 'q_l2_010_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l2_010',
+    prompt: 'MTUブラックホールの暫定対策として最も早く効果が出る方法はどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: '全ルーターのMTUを1500に統一する（ジャンボフレームを廃止）',
+          isCorrect: false, scoreImpact: 50,
+          feedbackText: '効果的ですが、ジャンボフレームを使っている他のサーバーに影響が出る可能性があります。影響調査が必要です。'),
+      Choice(id: 'b', text: 'ip tcp adjust-mss 1452 を境界ルーターのインターフェースに設定する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ MSS調整はTCPのSYNパケットでネゴシエーションされるセグメントサイズを制限するため、既存の設定を変えずに問題を解決できます。即時効果があります。'),
+      Choice(id: 'c', text: 'ファイル転送ソフトウェアのバッファサイズを変更する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'アプリ側の変更は全デバイスへの適用が必要で時間がかかります。ネットワーク側での対処が効率的です。'),
+      Choice(id: 'd', text: 'DNSのTTLを短くする',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DNSはこの問題と無関係です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ip tcp adjust-mss コマンドはルーターを通過するTCP SYNパケットのMSSフィールドを'
+          '指定値以下に書き換える。これによりTCPセッションのセグメントサイズが制限され、'
+          'MTUを超えるパケットが生成されなくなる。'
+          '設定値の目安: MTU(1500) - IPヘッダ(20) - TCPヘッダ(20) = 1460。'
+          'VPNオーバーヘッドがある場合はさらに小さい値（1452など）にする。',
+      nextActions: [
+        'interface [境界インターフェース]',
+        'ip tcp adjust-mss 1452 を設定',
+        '大きいファイル転送が成功するか確認',
+        '中長期的にMTU設定の統一を計画する',
+      ],
+      relatedCommands: [
+        'interface GigabitEthernet0/0',
+        ' ip tcp adjust-mss 1452',
+        'show run interface GigabitEthernet0/0',
+        'ping 10.0.0.1 size 1500 df-bit  (修正後の確認)',
+      ],
+      studyReference: 'CCNP: MSS・PMTUD・ip tcp adjust-mss',
+    ),
+  ),
+
+  // ━━ L3 追加問題 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Question(
+    id: 'q_l3_003_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_003',
+    prompt: 'メイン回線がダウンしたがバックアップに切り替わらない。\nルーティングテーブルを確認してください。',
+    logLines: [
+      'Router# show ip route static',
+      'S*   0.0.0.0/0 [1/0] via 203.0.113.1  ← メイン（AD=1）',
+      'S*   0.0.0.0/0 [1/0] via 198.51.100.1 ← バックアップ（AD=1）',
+      '',
+      '# 期待する設定',
+      'メイン:    AD=1 （優先）',
+      'バックアップ: AD=10 （フローティング）',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'バックアップ回線のIPアドレスが間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'IPアドレスが間違っていればそもそもルートが入りません。両方AD=1になっているのがロードバランシングで切り替わらない原因です。'),
+      Choice(id: 'b', text: 'バックアップルートのADがメインと同じ1のため等コストロードバランシングになり、フェイルオーバーが機能しない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 両方AD=1なのでロードバランシングになっています。バックアップはAD=10など大きい値（フローティングスタティック）にしないとフェイルオーバーが動作しません。'),
+      Choice(id: 'c', text: 'バックアップ回線の帯域が不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '帯域はルートの選択に直接影響しません。ADが同じためロードバランシングになっています。'),
+      Choice(id: 'd', text: 'SLAの設定が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'SLAは設定されていません。AD値の設定ミスが根本原因です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'フローティングスタティックルートのAD設定ミス。'
+          'メインとバックアップの両方がAD=1のため等コストロードバランシングになっている。'
+          'メイン障害時にバックアップへの切り替えが起きない。'
+          'バックアップルートのADをメインより大きい値（例: 200）にすることで'
+          'メイン障害時のみバックアップが有効になるフローティングルートになる。',
+      nextActions: [
+        'バックアップルートを削除して正しいADで再設定する',
+        'no ip route 0.0.0.0 0.0.0.0 198.51.100.1',
+        'ip route 0.0.0.0 0.0.0.0 198.51.100.1 200  (AD=200)',
+        'メイン回線をダウンさせてフェイルオーバーをテストする',
+      ],
+      relatedCommands: [
+        'no ip route 0.0.0.0 0.0.0.0 198.51.100.1 1',
+        'ip route 0.0.0.0 0.0.0.0 198.51.100.1 200',
+        'show ip route static',
+        'show ip route 0.0.0.0',
+      ],
+      studyReference: 'CCNA: スタティックルート・フローティングスタティック・AD（Administrative Distance）',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_003_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l3_003',
+    prompt:
+        'フローティングスタティックルートを設定したが、\nメイン回線がダウンしてもルートが切り替わらない。\n次に確認すべきことはどれですか？',
+    logLines: [
+      'S*  0.0.0.0/0 [1/0] via 203.0.113.1  (メイン・まだ残っている)',
+      '# メイン回線のIF: GigabitEthernet0/0 is up, line protocol is up',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'スタティックルートはネクストホップが到達可能な限りルートが残るため、IFがUpならルートは消えない。IP SLAでルート追跡を設定する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ スタティックルートはネクストホップが到達可能な限り削除されません。ISP側がダウンしてもIFがUpなら切り替わりません。IP SLAでISP先への疎通を監視して連動させます。'),
+      Choice(id: 'b', text: 'バックアップルートのADをさらに大きくする',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ADを変えても根本原因（メインルートが消えない）は解決しません。'),
+      Choice(id: 'c', text: 'ルーターを再起動する',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: '再起動では解決しません。設計上の問題（IP SLA未設定）が原因です。'),
+      Choice(id: 'd', text: 'バックアップ回線のケーブルを確認する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'バックアップ回線の問題ではなく、メインルートの削除条件が設定されていないことが問題です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'スタティックルートはネクストホップIPへの到達可能性でルートの有無が決まる。'
+          'GigabitEthernet0/0がUp状態であれば、ISP側がダウンしてもルートは残り切り替わらない。'
+          'IP SLA（Service Level Agreement）でISP先（例: 8.8.8.8）へのICMP疎通を定期的に監視し、'
+          '失敗時にトラックオブジェクトと連動してスタティックルートを自動削除する設定が必要。',
+      nextActions: [
+        'ip sla 1 / icmp-echo 8.8.8.8 で疎通監視を設定',
+        'ip sla schedule 1 life forever start-time now',
+        'track 1 ip sla 1 reachability',
+        'ip route 0.0.0.0 0.0.0.0 203.0.113.1 track 1',
+        'メイン障害時にtrack 1がdownしてルートが削除されることを確認',
+      ],
+      relatedCommands: [
+        'ip sla 1',
+        ' icmp-echo 8.8.8.8 source-interface GigabitEthernet0/0',
+        ' frequency 10',
+        'ip sla schedule 1 life forever start-time now',
+        'track 1 ip sla 1 reachability',
+        'ip route 0.0.0.0 0.0.0.0 203.0.113.1 1 track 1',
+      ],
+      studyReference: 'CCNP ENCOR: IP SLA・オブジェクトトラッキング・フローティングスタティック',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_004_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_004',
+    prompt: '業務時間帯だけインターネット接続が断続的に失敗します。\n以下のログから原因を特定してください。',
+    logLines: [
+      'Router# show ip nat translations total',
+      '  Total active translations: 64000 (limit: 64000)',
+      '  Outside interfaces: GigabitEthernet0/0',
+      '',
+      'Router# show ip nat statistics',
+      '  Total translations: 64000  (max: 64000)',
+      '  Expired translations: 0',
+      '  Hits: 1,245,832  Misses: 12,458 ← 新規接続失敗',
+      '',
+      '%IP-3-NOPAT: PAT entry creation failed for',
+      '  192.168.1.50:54321 to 8.8.8.8:443',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'インターネット回線の帯域が不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '帯域不足なら全体が遅くなります。接続自体が失敗するのはNATテーブルが満杯のためです。'),
+      Choice(id: 'b', text: 'NATテーブルが上限（64000エントリ）に達して新規接続が失敗している',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ NATテーブルが64000/64000で満杯。新規接続のためのエントリを作れずに失敗しています。古いエントリのタイムアウト短縮が必要です。'),
+      Choice(id: 'c', text: 'DNSサーバーが応答していない',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DNSなら名前解決だけ失敗します。%IP-3-NOPATはNAT変換エントリの作成失敗を示しています。'),
+      Choice(id: 'd', text: 'ファイアウォールのACLがブロックしている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ACLブロックなら一貫して失敗します。業務時間帯（ユーザー数が多い時）だけ失敗するのはリソース枯渇の症状です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'NATテーブル（PATエントリ）が上限64000に達して新規接続ができない状態。'
+          '業務時間帯に多数のユーザーが接続するとエントリが蓄積し、'
+          '古いセッションがタイムアウトする前に上限に達する。'
+          'UDPのNATタイムアウトは300秒、TCPは86400秒がデフォルトで長すぎる場合がある。',
+      nextActions: [
+        'NATタイムアウトを短縮して古いエントリを解放する',
+        'ip nat translation tcp-timeout 3600（デフォルト86400→1時間）',
+        'ip nat translation udp-timeout 30（デフォルト300→30秒）',
+        'ip nat translation finrst-timeout 30',
+        'PAT（ポートアドレス変換）の使用グローバルIPを増やすことも検討',
+      ],
+      relatedCommands: [
+        'ip nat translation tcp-timeout 3600',
+        'ip nat translation udp-timeout 30',
+        'ip nat translation finrst-timeout 30',
+        'clear ip nat translation *  (緊急時: 全エントリクリア)',
+        'show ip nat translations total',
+      ],
+      studyReference: 'CCNA: NAT・PAT・NATテーブル・タイムアウト管理',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_007_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_007',
+    prompt: 'ACLを追加したらHTTPSは通るがHTTPが全てブロックされました。\n以下のACLを確認してください。',
+    logLines: [
+      'Router# show ip access-lists WEB-FILTER',
+      'Extended IP access list WEB-FILTER',
+      '  10 permit tcp any any eq 443  (HTTPS許可)',
+      '  20 permit tcp any any eq 22   (SSH許可)',
+      '  30 deny   tcp any any eq 80   (HTTP拒否)',
+      '  40 permit ip any any',
+      '',
+      '# 問題: HTTPSは通るがHTTPが全部ブロックされている',
+      '# 本来の意図: 特定の不審サイト(203.0.113.0/24)へのHTTPのみ拒否',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'ACLのシーケンス番号が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'シーケンス番号は評価順序を決めるもので、この問題はルール30の宛先が「any」になっていることが原因です。'),
+      Choice(id: 'b', text: 'ルール30の宛先が「any」のため全HTTPをブロックしており、特定サイトへのブロックになっていない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ deny tcp any any eq 80 は全HTTPをブロックします。特定サイトだけブロックするには宛先に対象のIPアドレスを指定する必要があります。'),
+      Choice(id: 'c', text: '暗黙のdeny allが適用されている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '暗黙のdeny allは最後に適用されますが、ルール40でpermit ip any anyが設定されているため最後のdenyは問題ではありません。ルール30が問題です。'),
+      Choice(id: 'd', text: 'HTTPSの許可ルールが先にあるのでHTTPは通るはず',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ACLは上から順番に評価されます。ルール30でdeny tcp any any eq 80が先にマッチしてHTTPをブロックします。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ACLのルール30が「deny tcp any any eq 80」となっており、'
+          '送信元・宛先ともに「any」のため全HTTPトラフィックをブロックしている。'
+          '本来は特定の不審サイト（203.0.113.0/24）へのHTTPのみをブロックしたい場合は'
+          '宛先を指定する必要がある。ACLは最初にマッチしたルールが適用される（上から順番）。',
+      nextActions: [
+        '現在のルール30を削除する',
+        '特定の宛先を指定したルールに修正する',
+        'ip access-list extended WEB-FILTER',
+        'no 30  （ルール30を削除）',
+        '30 deny tcp any 203.0.113.0 0.0.0.255 eq 80  （正しいルール）',
+      ],
+      relatedCommands: [
+        'ip access-list extended WEB-FILTER',
+        ' no 30',
+        ' 30 deny tcp any 203.0.113.0 0.0.0.255 eq 80',
+        'show ip access-lists WEB-FILTER',
+        'show ip interface GigabitEthernet0/0  (ACL適用確認)',
+      ],
+      studyReference: 'CCNA: 拡張ACL・シーケンス番号・暗黙のdeny・ACL設計',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_007_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l3_007',
+    prompt:
+        'ACLを修正したが今度は社内の特定サーバー(10.0.0.10)からの\n管理アクセスもブロックされた。\n最も適切な対処はどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: '管理アクセス許可のルールをACLの先頭に追加する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ ACLは上から順番に評価されます。管理アクセスを先頭に明示的に許可しておけば、後続のdenyルールにマッチする前に許可されます。'),
+      Choice(id: 'b', text: 'ACLを全て削除して最初から作り直す',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '全削除は不要です。既存のルールを維持しながら先頭に許可ルールを追加するだけで解決します。'),
+      Choice(id: 'c', text: '管理サーバーに別のIPアドレスを割り当ててACLの対象外にする',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'IPアドレス変更は影響範囲が大きく、ACLの修正で対処できるのに不要な変更です。'),
+      Choice(id: 'd', text: 'ACLをインターフェースから取り外す',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: 'ACLを外すとセキュリティポリシーが無効になります。ACLを修正して対処します。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ACLの評価は上から順番で最初にマッチしたルールが適用される。'
+          '管理アクセスのトラフィックが先にdenyルールにマッチしてブロックされている。'
+          '解決策: 管理アクセスを許可するルールを、denyルールよりも小さいシーケンス番号で追加する。'
+          '一般的にACL設計では「許可したいものを先に、拒否したいものを後に」の原則に従う。',
+      nextActions: [
+        '管理アクセス許可ルールをシーケンス番号5（先頭）に追加',
+        'ip access-list extended WEB-FILTER',
+        '5 permit tcp host 10.0.0.10 any  （管理サーバーの全通信を許可）',
+        'show ip access-lists で順序を確認',
+      ],
+      relatedCommands: [
+        'ip access-list extended WEB-FILTER',
+        ' 5 permit tcp host 10.0.0.10 any',
+        'show ip access-lists WEB-FILTER',
+        'debug ip packet  (トラブルシューティング時)',
+      ],
+      studyReference: 'CCNA: ACL設計原則・シーケンス番号の活用',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_008_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_008',
+    prompt: 'RIP環境で拠点Eが到達不能になりました。\nルーティングテーブルを確認してください。',
+    logLines: [
+      'Router-A# show ip route rip',
+      'R  10.1.0.0/24 [120/1] via 10.0.0.2',
+      'R  10.2.0.0/24 [120/2] via 10.0.0.2',
+      'R  10.3.0.0/24 [120/5] via 10.0.0.2',
+      'R  10.4.0.0/24 [120/12] via 10.0.0.2',
+      '# 10.5.0.0/24 (拠点E) → ルートなし',
+      '',
+      'Router-D# show ip route rip',
+      'R  10.5.0.0/24 [120/1] via 10.4.0.2  (ホップ数=1)',
+      '# Router-AからRouter-Eまで: 16ホップ',
+    ],
+    choices: [
+      Choice(id: 'a', text: '拠点EのルーターのRIPが無効になっている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'Router-DではRouter-Eへのルートが見えています。Router-AからRouter-Eまでの経路が16ホップになっています。'),
+      Choice(id: 'b', text: 'Router-AからRouter-Eまでが16ホップでRIPの最大ホップ数（15）を超えているため到達不能（16=無限大）',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ RIPはホップ数15が最大で、16は「到達不能（無限大）」を意味します。Router-Aから拠点Eが16ホップになり経路が消えています。'),
+      Choice(id: 'c', text: '帯域不足でルーティングアップデートが届いていない',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '他の経路は正常に学習しています。ホップ数の問題です。'),
+      Choice(id: 'd', text: 'RIPのバージョンが不一致',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'バージョン不一致なら全経路が学習できません。特定の経路だけ消えているのはホップ数の問題です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'RIPの最大ホップ数は15。Router-AからRouter-Eまでが16ホップになり、'
+          'RIPは16を「到達不能（無限大）」と扱うためRouter-Aのルーティングテーブルから消える。'
+          '解決策: ①OSPF/EIGRPに移行（ホップ数制限なし） ②ネットワークを再設計してホップ数を削減',
+      nextActions: [
+        '短期: 中間ルーターを集約して経路のホップ数を削減する',
+        '中期: OSPF（またはEIGRP）への移行を計画する（ホップ数制限なし）',
+        'OSPFへの移行: router ospf 1 / network 10.0.0.0 0.255.255.255 area 0',
+        'サマリーアドレスでルート数削減も検討（ip summary-address rip）',
+      ],
+      relatedCommands: [
+        'show ip route rip',
+        'show ip rip database',
+        'router ospf 1',
+        ' network 10.0.0.0 0.255.255.255 area 0',
+        'show ip ospf neighbor',
+      ],
+      studyReference: 'CCNA: RIP・ホップ数制限・無限カウント問題・OSPFへの移行',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_010_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_010',
+    prompt: '新しいデバイスがIPアドレスを取得できない。\nDHCPサーバーのログを確認してください。',
+    logLines: [
+      'DHCP-Server# show ip dhcp pool',
+      '  Pool Name: OFFICE',
+      '  Network: 192.168.1.0/24',
+      '  Range: 192.168.1.100 - 192.168.1.200',
+      '  Leased: 101  Available: 0',
+      '',
+      'DHCP-Server# show ip dhcp binding | count',
+      '  Total bindings: 101',
+      '',
+      '%DHCP-3-POORADDRESSPOOLUSE: Pool OFFICE has',
+      '  no available addresses',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'DHCPサーバーが停止している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DHCPサーバーは動作していますが、プールが枯渇しています（Leased: 101, Available: 0）。'),
+      Choice(id: 'b', text: 'DHCPプール（101アドレス）が全て使用中でIPアドレスを割り当てられない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 192.168.1.100〜200の101アドレスが全て割り当て済みです。プールの拡張またはリース期間の短縮が必要です。'),
+      Choice(id: 'c', text: 'デフォルトゲートウェイの設定が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'デフォルトゲートウェイの問題ならIPアドレスは取得できます。ここはアドレス自体が枯渇しています。'),
+      Choice(id: 'd', text: 'クライアントのネットワーク設定が静的IPになっている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '静的IPならDHCPリクエスト自体が来ません。サーバー側でプール枯渇が確認されています。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'DHCPプールの101アドレス（192.168.1.100-200）が全て割り当て済み。'
+          '新しいデバイスへの割り当てができない状態。'
+          '原因として: ①接続デバイス数の増加 ②リース期間が長く古い割り当てが解放されない'
+          '③幽霊エントリ（デバイスが削除されてもリースが残っている）などが考えられる。',
+      nextActions: [
+        'show ip dhcp binding で古いエントリを確認する',
+        '不要なエントリを手動でクリアする（clear ip dhcp binding *）',
+        'DHCPプールを拡張する（192.168.1.50-250などに変更）',
+        'リース期間を短縮する（lease 0 4 0 = 4時間）',
+        '長期的にサブネットを分割してデバイス管理を整理する',
+      ],
+      relatedCommands: [
+        'show ip dhcp binding',
+        'show ip dhcp pool',
+        'clear ip dhcp binding *',
+        'ip dhcp pool OFFICE',
+        ' lease 0 4 0  (リース期間を4時間に短縮)',
+        ' network 192.168.1.0 /24',
+        ' default-router 192.168.1.1',
+      ],
+      studyReference: 'CCNA: DHCP・プール管理・リース期間・DHCPトラブルシューティング',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_010_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l3_010',
+    prompt:
+        'DHCPプールが枯渇している。急いで新しいデバイスを接続しなければならない。\n最も短時間で効果がある対処はどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: 'DHCPサーバーを再起動する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '再起動するとバインディングテーブルが消えて既存デバイスの通信が切断されるリスクがあります。緊急対応としては不適切です。'),
+      Choice(id: 'b', text: 'clear ip dhcp binding * で古いエントリを解放してから、リース期間を短縮する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 古いバインディングをクリアすることで即座にアドレスが解放されます。その後リース期間を短縮して再発を防ぎます。ただし既存接続への影響があるため注意が必要です。'),
+      Choice(id: 'c', text: '新しいデバイスに静的IPを手動設定して対応する',
+          isCorrect: false, scoreImpact: 50,
+          feedbackText: '緊急の一時対応としては有効ですが、管理が煩雑になります。根本解決はDHCPプールの拡張・整理が必要です。'),
+      Choice(id: 'd', text: '新しいサブネットを作成してVLANを追加する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'VLANの追加は中長期的な対策として有効ですが、緊急対応としては時間がかかりすぎます。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'DHCPプール枯渇時の緊急対応: '
+          '①clear ip dhcp binding * でバインディングを解放（既存接続への影響あり・注意）'
+          '②リース期間短縮（ip dhcp pool / lease 0 2 0 など）で解放を速める'
+          '③静的IP割り当てで緊急対応（管理負荷増）。'
+          '中長期: ①プール拡張 ②サブネット分割 ③不要デバイスの整理。',
+      nextActions: [
+        'show ip dhcp binding で長期間未使用のエントリを確認',
+        '特定バインディングのクリア: clear ip dhcp binding 192.168.1.xxx',
+        'リース期間短縮: ip dhcp pool OFFICE → lease 0 2 0（2時間）',
+        'プール拡張: ip dhcp excluded-address を見直してプール範囲を広げる',
+      ],
+      relatedCommands: [
+        'show ip dhcp binding',
+        'clear ip dhcp binding 192.168.1.150',
+        'ip dhcp pool OFFICE',
+        ' lease 0 2 0',
+        'show ip dhcp pool  (拡張後の確認)',
+      ],
+      studyReference: 'CCNA: DHCPトラブルシューティング・リース管理',
+    ),
+  ),
+
+  // ━━ キャパシティ 追加問題 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Question(
+    id: 'q_cap_002_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_002',
+    prompt: 'ルーターのCPU使用率が90%以上で通信が遅延しています。\n何が原因ですか？',
+    logLines: [
+      'Router# show processes cpu sorted',
+      'CPU utilization for 5s: 94% / 91%',
+      '',
+      '  PID  Runtime  Invoked  uSecs  5Sec  Process',
+      '  169  1824344  9187    198431  87%   IP Input',
+      '   11   12345   5432      2273   3%   ARP Input',
+      '    1    4521   1234      3665   1%   Chunk Manager',
+      '',
+      'Router# show ip cef',
+      '  CEF is disabled',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'メモリが不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'メモリはshow processes memoryで確認します。CPU使用率87%がIP Inputプロセスに集中しており、CEFが無効なのが根本原因です。'),
+      Choice(id: 'b', text: 'CEF（Cisco Express Forwarding）が無効でプロセススイッチングになっているためCPU高負荷',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ CEFが無効だと全パケットをCPU（IP Inputプロセス）で処理するプロセススイッチングになります。CEFを有効化することでハードウェア転送になりCPUが解放されます。'),
+      Choice(id: 'c', text: 'ルーティングテーブルが大きすぎる',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'テーブルサイズが問題ならshow ip routeで確認します。この問題はパケット転送方式（CEFが無効）が原因です。'),
+      Choice(id: 'd', text: 'DDos攻撃を受けている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DDoSの可能性もありますが、まずCEFが無効になっている点が明確な原因です。CEFを有効にした後も高負荷なら攻撃を疑います。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'CEF（Cisco Express Forwarding）が無効になっており、全パケットをCPUで処理するプロセススイッチングになっている。'
+          'CEFはFIB（転送情報ベース）を使ってハードウェアレベルで高速転送するため、'
+          'CEF有効時はCPUほぼ0%でパケット転送できる。'
+          'CEFが無効だとIP Inputプロセスが全パケットを処理するため高負荷になる。',
+      nextActions: [
+        'ip cef でCEFを有効化する',
+        '変更後にshow ip cef でCEFがEnabledになることを確認',
+        'show processes cpu でIP Inputが低下することを確認',
+        '定期的なCPU監視をSNMPで設定する',
+      ],
+      relatedCommands: [
+        'ip cef',
+        'show ip cef',
+        'show processes cpu sorted',
+        'show ip cef summary',
+        'debug ip cef  (慎重に使用)',
+      ],
+      studyReference: 'CCNP ENCOR: CEF・プロセススイッチング・高速スイッチング・転送方式',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_002_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_cap_002',
+    prompt:
+        'CEFを有効化したがまだCPU使用率が80%ある。\n次に確認すべきことはどれですか？',
+    logLines: [
+      'Router# show processes cpu sorted',
+      '  CPU: 80%  IP Input: 75%  (まだ高い)',
+      '',
+      'Router# show ip traffic',
+      '  Rcvd: 450000 pkts, broadcasts=440000 (97%がブロードキャスト)',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'ルーターを再起動する',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: '再起動は一時的な解決にしかなりません。97%がブロードキャストという異常が根本原因です。'),
+      Choice(id: 'b', text: 'トラフィックの97%がブロードキャストの原因を調査する（ネットワークループまたはブロードキャストストームの可能性）',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 正常なネットワークでブロードキャストが97%は異常です。ループ・ストームが発生しているか、ブロードキャストを大量送信するアプリが存在する可能性があります。'),
+      Choice(id: 'c', text: 'CPUをアップグレードする',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ハードウェアアップグレードは最終手段です。まず異常なブロードキャストの原因を特定します。'),
+      Choice(id: 'd', text: 'ルーティングテーブルをクリアする',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ルーティングテーブルをクリアすると通信が切断されます。ブロードキャスト過多の原因調査が先です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          '全トラフィックの97%がブロードキャストは明らかに異常。'
+          'ルーターはブロードキャストをCPUで処理するため（CEF対象外）高負荷になる。'
+          '原因の可能性: ①ネットワークループ（STP未設定のHub等）'
+          '②ブロードキャストストーム ③不正なARP/DHCPの大量送信。',
+      nextActions: [
+        'show ip traffic でブロードキャストの内訳を確認',
+        'show interfaces でどのインターフェースからの流入か確認',
+        'STPの状態を確認（show spanning-tree）',
+        'Storm Controlを設定してブロードキャストを制限',
+        'ループの原因を特定・除去する',
+      ],
+      relatedCommands: [
+        'show ip traffic',
+        'show interfaces counters',
+        'show spanning-tree',
+        'storm-control broadcast level 10.00',
+        'show interfaces | include broadcast',
+      ],
+      studyReference: 'CCNA: ブロードキャストストーム・CEF・トラフィック分析',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_004_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_004',
+    prompt: '以下のインターフェース統計からエラーの原因として最も可能性が高いものはどれですか？',
+    logLines: [
+      'Router# show interfaces GigabitEthernet0/1',
+      '  30 second input rate: 45000000 bits/sec',
+      '  Input errors: 12,847',
+      '   CRC: 12,801  (99.6%がCRC)',
+      '   Frame: 46',
+      '   Overrun: 0',
+      '   Ignored: 0',
+      '  Output errors: 0',
+      '  Collisions: 0',
+      '',
+      '# 特記事項: 隣のポートGi0/0はエラーなし',
+      '# 同じケーブルタイプを使用',
+    ],
+    choices: [
+      Choice(id: 'a', text: '帯域が飽和してパケットがドロップしている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '帯域飽和ならOutputのdropsが増えます。CRCエラーはデータが壊れた状態で受信していることを示しています。'),
+      Choice(id: 'b', text: 'ケーブルの劣化またはコネクタ不良により信号品質が低下してCRCエラーが発生している',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 入力エラーの99.6%がCRCエラーは物理層の問題（ケーブル劣化・コネクタ不良・電磁干渉）の典型です。隣のポートが正常なのでスイッチ自体は問題なし。'),
+      Choice(id: 'c', text: 'ルーティングテーブルが間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ルーティングはL3の問題で、CRCエラーはL1（物理層）の問題です。レイヤーが異なります。'),
+      Choice(id: 'd', text: 'デュプレックスが不一致している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'デュプレックス不一致もCRCエラーの原因になりますが、CollisionsもFrameエラーも少なく、CRCが圧倒的に多いのはケーブル劣化の方が可能性が高いです。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          '入力CRCエラーが99.6%（12,801/12,847）という極めて高い比率は物理層の問題の典型。'
+          'CRCエラーはフレームの受信データとCRCチェックサムが一致しない場合に発生し、'
+          'ケーブル劣化・コネクタの接触不良・強い電磁干渉などが原因。'
+          '隣のGi0/0が正常なのでスイッチ自体やデバイス側の問題を排除できる。',
+      nextActions: [
+        'ケーブルを新しいものに交換して改善するか確認',
+        'SFPモジュールの場合はSFPを交換',
+        'コネクタの清掃と再挿入',
+        '電磁干渉源（電源ケーブル・モーターなど）との距離を確認',
+        '改善しない場合はポート自体の故障を疑う',
+      ],
+      relatedCommands: [
+        'show interfaces GigabitEthernet0/1',
+        'clear counters GigabitEthernet0/1',
+        'show controllers GigabitEthernet0/1  (物理層詳細)',
+        'show interfaces GigabitEthernet0/1 counters errors',
+      ],
+      studyReference: 'CCNA: エラーカウンターの読み方・CRCエラー・物理層トラブルシューティング',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_005_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_005',
+    prompt: 'VoIPの音声品質が業務時間帯に劣化します。\nQoS設定を確認してください。',
+    logLines: [
+      'Router# show policy-map interface GigabitEthernet0/0',
+      '  Service-policy output: OFFICE-QOS',
+      '    Class-map: VOIP (match-all)',
+      '     Match: dscp ef (46)',
+      '     Queuing: CBWFQ',
+      '     Bandwidth: 10 kbps  ← 非常に少ない',
+      '     Output queue: 0/64 packets',
+      '',
+      '    Class-map: DATA (match-all)',
+      '     Match: dscp default (0)',
+      '     Bandwidth: 800 kbps',
+      '',
+      '# VoIP通話: 1通話あたり約90kbps（G.711コーデック）',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'VoIPのDSCP値が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DSCP EF(46)はVoIPの標準値で正しい設定です。問題は割り当て帯域幅にあります。'),
+      Choice(id: 'b', text: 'VoIPクラスの帯域幅が10kbpsで1通話（90kbps）にも満たない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ G.711 VoIPは1通話90kbps必要ですが、QoSポリシーでVoIPに10kbpsしか割り当てていません。帯域が足りず音声が劣化しています。'),
+      Choice(id: 'c', text: 'WAN回線の帯域が不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'WAN帯域が問題ならデータ通信も遅くなります。QoSポリシーでVoIPの割り当て帯域が少ないのが問題です。'),
+      Choice(id: 'd', text: 'VoIPサーバーの設定が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'サーバー側の問題なら時間帯に関係なく劣化します。ネットワーク側のQoS設定が原因です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'QoSポリシーでVoIPクラスに割り当てた帯域が10kbpsだが、'
+          'G.711コーデックのVoIPは1通話あたり約90kbpsが必要（音声+RTPヘッダーオーバーヘッド）。'
+          '業務時間帯に複数通話が発生すると帯域が枯渇して音声が劣化する。'
+          '適切な設計: 最大同時通話数×90kbps + 20%のマージンを確保。',
+      nextActions: [
+        '最大同時通話数を確認する（例: 10通話 = 900kbps必要）',
+        'VoIPクラスの帯域を適切な値に修正する',
+        'policy-map OFFICE-QOS でVoIPの帯域を修正',
+        'G.729コーデック（8kbps）への変更でVoIP帯域を削減する選択肢も検討',
+      ],
+      relatedCommands: [
+        'policy-map OFFICE-QOS',
+        ' class VOIP',
+        '  bandwidth 500  (10通話 × 90kbps ÷ 2 概算)',
+        '  priority  (LLQで優先制御)',
+        'show policy-map interface GigabitEthernet0/0',
+      ],
+      studyReference: 'CCNP ENCOR: QoS・CBWFQ・LLQ・VoIP帯域計算・DSCP EF',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_005_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_cap_005',
+    prompt:
+        'VoIPの帯域を修正したが、今度はデータ通信が遅くなった。\n最も適切な対処はどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: 'VoIPの帯域をまた減らす',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: 'VoIPの帯域を減らすと再び音声品質が劣化します。根本的な解決にはなりません。'),
+      Choice(id: 'b', text: 'WAN帯域を増速するか、VoIPをLLQ（Low Latency Queuing）+CBWFQで適切に設計する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ QoSはゼロサムゲームです。VoIPを増やせばデータが減ります。LLQでVoIPを優先しつつ残り帯域をデータに割り当てる設計、または回線増速が根本解決です。'),
+      Choice(id: 'c', text: 'データ通信のDSCPを上げてVoIPと同じ優先度にする',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'データをEFにするとVoIPと同じ優先度になり、VoIPの品質が再び劣化します。'),
+      Choice(id: 'd', text: 'QoSポリシーを全て削除する',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: 'QoSを削除するとVoIP品質が劣化します。設計を見直すことが正解です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'QoSの基本原則: 帯域は固定なのでVoIPに多く割り当てるほどデータが少なくなる。'
+          'LLQはVoIPに優先キューを使い低遅延を保証しつつ、残り帯域を他クラスで共有する設計。'
+          '最善策は: ①WAN回線を増速 ②LLQ+CBWFQでVoIP優先設計 ③不要なトラフィックを制限。',
+      nextActions: [
+        '現在のWAN使用率を確認する（show interfaces）',
+        'VoIPにpriority（LLQ）を設定して遅延を最小化',
+        '残り帯域をデータクラスでCBWFQ制御',
+        '不要アプリの帯域を制限（Policing）して全体の帯域を確保',
+      ],
+      relatedCommands: [
+        'policy-map OFFICE-QOS',
+        ' class VOIP',
+        '  priority 500  (LLQ: 500kbps優先)',
+        ' class DATA',
+        '  bandwidth remaining percent 80',
+        'show policy-map interface statistics',
+      ],
+      studyReference: 'CCNP: LLQ（Low Latency Queuing）・CBWFQ・QoS設計',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_007_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_007',
+    prompt: 'DNSサーバーの応答が遅延しています。\n以下の統計から原因を選んでください。',
+    logLines: [
+      'DNS-Server# show dns statistics',
+      '  Total queries: 450,000/hour',
+      '  Cache hits: 12,375 (2.75%)',
+      '  Cache misses: 437,625 (97.25%) ← 異常に低いヒット率',
+      '  Recursive queries to upstream: 437,625',
+      '',
+      '  Top queried domains:',
+      '  example.com: 45,000/hr  TTL=0  ← TTL=0',
+      '  api.example.com: 38,000/hr  TTL=0',
+      '  cdn.example.com: 32,000/hr  TTL=60 (60秒)',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'DNSサーバーのメモリが不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'メモリ不足なら全クエリが遅延します。TTL=0のドメインだけがキャッシュされずに毎回上流に問い合わせているのが問題です。'),
+      Choice(id: 'b', text: '主要ドメインのTTLが0または短すぎてキャッシュが機能せず上流への問い合わせが多発している',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ TTL=0はキャッシュ不可を意味します。主要ドメインのTTLが0のため毎回上流DNSに問い合わせが発生し、97%がキャッシュミスになっています。'),
+      Choice(id: 'c', text: 'DNSサーバーのソフトウェアが古い',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ソフトウェアバージョンは関係ありません。TTL=0というDNSレコードの設定が原因です。'),
+      Choice(id: 'd', text: 'ネットワーク帯域が不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DNSクエリ自体は小さいパケットです。帯域よりもキャッシュヒット率の問題です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'DNS TTL（Time To Live）が0または極端に短い値に設定されているため、'
+          'DNSキャッシュサーバーがレコードをキャッシュできない。'
+          '毎回の問い合わせが上流（権威DNSサーバー）に転送され、'
+          'DNSサーバー・ネットワーク・権威サーバーへの負荷が急増する。'
+          'TTL=0はメンテナンス時の一時的な設定で、通常は300秒〜3600秒が推奨。',
+      nextActions: [
+        '主要ドメインのDNSレコードのTTLを適切な値（300〜3600秒）に変更する',
+        '権威DNSサーバーの管理者にTTL変更を依頼する',
+        'ローカルDNSでの最小TTL設定を検討する（min-ttl 60）',
+        'DNSキャッシュのサイズ設定を確認・拡張する',
+      ],
+      relatedCommands: [
+        'dig example.com +ttl  (TTL確認)',
+        'nslookup -type=A example.com  (DNS確認)',
+        '# BIND設定例:',
+        '\$TTL 300',
+        'example.com. IN A 203.0.113.1',
+      ],
+      studyReference: 'CCNA: DNS・TTL・DNSキャッシュ・再帰問い合わせ',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_010_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_010',
+    prompt: 'SNMP監視のポーリング間隔を60秒から10秒に短縮したらルーターのCPUが上昇し始めました。\n最も適切な対処はどれですか？',
+    logLines: [
+      'Router# show processes cpu sorted',
+      '  CPU 5s: 45%  5min: 42%',
+      '  SNMP ENGINE: 38%  ← SNMP処理でCPUが高い',
+      '',
+      '# 監視対象: 150台のネットワーク機器',
+      '# OIDポーリング: 1機器あたり80 OID',
+      '# ポーリング間隔: 10秒',
+      '# 計算: 150台 × 80 OID ÷ 10秒 = 1200 OID/秒',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'SNMPバージョンをv1からv3にアップグレードする',
+          isCorrect: false, scoreImpact: 50,
+          feedbackText: 'v3はセキュリティ強化ですがCPU負荷は増加します。根本原因はポーリング頻度×OID数の多さです。'),
+      Choice(id: 'b', text: 'ポーリング間隔を戻す（60秒）か、重要なOIDのみを短間隔で監視するように設計を見直す',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 150台×80 OID÷10秒=1200 OID/秒はルーターへの過大な負荷です。全OIDを10秒で取得する必要はなく、重要な指標（インターフェース帯域・CPU・エラー）のみを短間隔にすべきです。'),
+      Choice(id: 'c', text: 'SNMPをTCPに変更する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'SNMPはUDP動作が標準で、TCPへの変更はさらに負荷が増えます。'),
+      Choice(id: 'd', text: 'ルーターのSNMP処理を優先キューに入れる',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'SNMP処理を優先するとルーティング処理が圧迫されます。監視頻度を下げることが正解です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'SNMP監視のポーリング負荷が監視対象機器に影響。'
+          '150台×80 OID÷10秒=1200 OID/秒の処理をルーターのCPUが担っている。'
+          '適切な設計: ①重要指標（帯域・エラー・CPU）は30〜60秒 '
+          '②環境情報（設定変更等）は5〜10分 ③ポーリングを分散してスパイクを防止。',
+      nextActions: [
+        'ポーリング間隔を60秒に戻す',
+        '重要なOIDのみ短間隔グループに分類する（帯域: 60秒・設定: 5分）',
+        'SNMP Trapを活用して閾値超過のみ通知する仕組みにする',
+        '監視サーバーのポーリングスケジュールを分散する（全機器同時でなく時間をずらす）',
+      ],
+      relatedCommands: [
+        'snmp-server community public RO  (読み取りのみ許可)',
+        'snmp-server host 10.0.0.1 public  (監視サーバー指定)',
+        'snmp-server enable traps  (Trap有効化)',
+        'show snmp  (SNMP統計確認)',
+        'show processes cpu | include SNMP',
+      ],
+      studyReference: 'CCNA: SNMP・監視設計・ポーリング最適化・SNMPv2c/v3',
+    ),
+  ),
+
+  // ━━ L3 追加問題（不足分） ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Question(
+    id: 'q_l3_005_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_005',
+    prompt: 'tracerouteが同じIPを繰り返し表示してパケットが届きません。\n何が起きていますか？',
+    logLines: [
+      'Router-A# traceroute 10.3.0.1',
+      '  1  10.0.0.2  (Router-B)   2ms',
+      '  2  10.0.0.1  (Router-A)   3ms  ← 戻ってきた',
+      '  3  10.0.0.2  (Router-B)   2ms',
+      '  4  10.0.0.1  (Router-A)   3ms',
+      '  ...',
+      '  30  *  *  *  TTL expired',
+      '',
+      'Router-A# show ip route 10.3.0.0',
+      'S  10.3.0.0/24 [1/0] via 10.0.0.2  (→Router-B)',
+      '',
+      'Router-B# show ip route 10.3.0.0',
+      'S  10.3.0.0/24 [1/0] via 10.0.0.1  (→Router-A)',
+    ],
+    choices: [
+      Choice(id: 'a', text: '宛先ネットワーク10.3.0.0/24が存在しない',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '存在しないだけなら「Network unreachable」が出ます。Router-AとBが互いに相手へ転送するループが発生しています。'),
+      Choice(id: 'b', text: 'Router-AとRouter-Bが10.3.0.0/24へ互いに転送するルーティングループになっている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ Router-AはRouter-Bへ、Router-BはRouter-Aへ転送するループ。パケットのTTLが0になるまで往復してドロップされます。'),
+      Choice(id: 'c', text: 'ルーターのCPUが高負荷でパケットを落としている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'CPU高負荷なら遅延が出ますが、ループのように往復するパターンにはなりません。'),
+      Choice(id: 'd', text: 'ケーブルが断線している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '断線なら「*  *  *」のみが表示されます。往復するパターンはルーティングループの典型です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ルーティングループ。Router-AはRouter-Bを経由してRouter-Bへ転送し、'
+          'Router-BはRouter-Aを経由してRouter-Aへ転送するループ構造になっている。'
+          'パケットはTTLが0になるまで往復してドロップされる。'
+          '原因: 10.3.0.0/24への正しい経路が両ルーターに存在せず、'
+          'デフォルトルートや誤ったスタティックルートが互いを指している。',
+      nextActions: [
+        '両ルーターの10.3.0.0/24へのルートを確認（show ip route）',
+        'Router-B側に正しい直接経路または正しいネクストホップを設定する',
+        'ループの原因となっているスタティックルートを削除・修正する',
+        'tracerouteで修正後に直線的に転送されることを確認',
+      ],
+      relatedCommands: [
+        'show ip route 10.3.0.0',
+        'no ip route 10.3.0.0 255.255.255.0  (誤ったルートを削除)',
+        'ip route 10.3.0.0 255.255.255.0 [正しいネクストホップ]',
+        'traceroute 10.3.0.1',
+      ],
+      studyReference: 'CCNA: ルーティングループ・TTL・スプリットホライズン・ポイズンリバース',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_005_2',
+    type: QuestionType.decisionFlow,
+    scenarioId: 's_l3_005',
+    prompt:
+        'ルーティングループが発生中。業務通信が完全に停止している。\n'
+        '最初にとるべき対処はどれですか？',
+    logLines: [],
+    choices: [
+      Choice(id: 'a', text: '全スタティックルートを削除してOSPFに移行する',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'OSPFへの移行は中長期的な対策です。まず原因のルートを特定して修正する緊急対応が先です。'),
+      Choice(id: 'b', text: 'ループを起こしているスタティックルートを特定して削除または修正する',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ show ip routeで両ルーターのルーティングテーブルを比較し、互いを指し合っているルートを特定して修正します。緊急対応として最速で効果が出ます。'),
+      Choice(id: 'c', text: '両ルーターを再起動する',
+          isCorrect: false, scoreImpact: -50,
+          feedbackText: '再起動後も同じスタティックルートが読み込まれるためループが再発します。設定を修正しないと解決しません。'),
+      Choice(id: 'd', text: 'ループしているリンクのケーブルを抜く',
+          isCorrect: false, scoreImpact: 50,
+          feedbackText: '物理的に切断すれば一時的に通信は止まりますが、問題の根本解決にはなりません。設定を修正する方が正しい対処です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'ルーティングループの対処: '
+          '①show ip routeで問題のルートを特定 → '
+          '②ループを起こしているスタティックルートを削除・修正 → '
+          '③tracerouteで修正確認。'
+          '根本対策: スプリットホライズン（RIP）・ポイズンリバース・OSPFへの移行でループを防止。',
+      nextActions: [
+        '両ルーターでshow ip route 10.3.0.0を実行して矛盾を確認',
+        '誤ったスタティックルートをno ip routeで削除',
+        '正しい経路を設定する',
+        '中長期: OSPFなどのリンクステートルーティングに移行してループを防止',
+      ],
+      relatedCommands: [
+        'show ip route',
+        'debug ip routing  (ルーティング変化の確認)',
+        'no ip route 10.3.0.0 255.255.255.0 10.0.0.2',
+        'traceroute 10.3.0.1  (修正確認)',
+      ],
+      studyReference: 'CCNA: ルーティングループ対処・スプリットホライズン・OSPF',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_006_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_006',
+    prompt: 'iBGP環境でルートリフレクターを導入しましたが、Router-Cが経路を学習していません。\n原因を特定してください。',
+    logLines: [
+      '# 構成: Router-RR（ルートリフレクター）, Router-B, Router-C',
+      '',
+      'Router-RR# show bgp neighbors 10.0.0.3 | include route-reflector',
+      '  (出力なし)  ← Router-CがRRクライアントになっていない',
+      '',
+      'Router-RR# show running-config | section router bgp',
+      '  router bgp 65001',
+      '   neighbor 10.0.0.2 route-reflector-client  (Router-B: クライアント設定あり)',
+      '   neighbor 10.0.0.3 remote-as 65001         (Router-C: クライアント設定なし)',
+      '',
+      'Router-C# show bgp summary',
+      '  Neighbor  State  Prefixes',
+      '  10.0.0.1  Established  0  ← 経路数0',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'Router-CとRouter-RRのAS番号が違う',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'BGPはEstablished状態なのでAS番号は一致しています。route-reflector-clientの設定漏れが原因です。'),
+      Choice(id: 'b', text: 'Router-RRがRouter-Cをルートリフレクタークライアントに設定していないため経路を反射していない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ iBGPではルートリフレクターはクライアントとして設定された隣接のみに経路を反射します。Router-Cにroute-reflector-clientが設定されていないため経路0になっています。'),
+      Choice(id: 'c', text: 'Router-CとRouter-RRの間のケーブルが断線している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'BGPがEstablished状態なのでL1/L2は正常です。設定の問題です。'),
+      Choice(id: 'd', text: 'Router-CにBGPが設定されていない',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'BGP neighborがEstablishedになっているのでBGPは動作しています。クライアント設定の漏れが原因です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'BGPルートリフレクター設定ミス。'
+          'iBGPではルートリフレクターはroute-reflector-clientとして設定された隣接にのみ'
+          '受信した経路を反射（再アドバタイズ）する。'
+          'Router-Cがクライアントとして設定されていないため、'
+          'Router-RRはRouter-Cへ経路を反射せず経路数が0になっている。',
+      nextActions: [
+        'Router-RRにRouter-CのネイバーにRRクライアント設定を追加',
+        'router bgp 65001 → neighbor 10.0.0.3 route-reflector-client',
+        '設定後にRouter-CでBGP経路が学習されるか確認',
+        'show bgp summary でPrefixesが増加することを確認',
+      ],
+      relatedCommands: [
+        'router bgp 65001',
+        ' neighbor 10.0.0.3 route-reflector-client',
+        'show bgp neighbors 10.0.0.3 | include route-reflector',
+        'show bgp summary',
+        'clear bgp ipv4 unicast 10.0.0.3 soft  (ソフトリセット)',
+      ],
+      studyReference: 'CCNP ENCOR: BGP・iBGP・ルートリフレクター・クラスターID',
+    ),
+  ),
+
+  Question(
+    id: 'q_l3_009_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_l3_009',
+    prompt: 'DNSがAAAAレコードを返しているのに実際の通信がIPv4になっています。\n原因を特定してください。',
+    logLines: [
+      '# DNS応答確認',
+      'dig AAAA example.com',
+      '  example.com.  300  IN  AAAA  2001:db8::1  ← IPv6アドレス返却',
+      '',
+      '# 実際の接続確認',
+      'ss -tn | grep 80',
+      '  ESTAB 203.0.113.50:12345 → 192.0.2.1:80  ← IPv4で接続',
+      '',
+      '# IPv6疎通確認',
+      'ping6 2001:db8::1',
+      '  connect: Network is unreachable  ← IPv6到達不能',
+      '',
+      '# IPv6インターフェース確認',
+      'ip -6 addr',
+      '  lo: ::1/128  ← ループバックのみ、外向きIPv6なし',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'DNSサーバーの設定が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DNSは正しくAAAAを返しています。問題はクライアント側にIPv6接続性がないことです。'),
+      Choice(id: 'b', text: 'クライアントにIPv6アドレスが割り当てられておらず疎通できないためIPv4にフォールバックしている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ Happy Eyeballs（RFC 8305）により、IPv6で接続できない場合はIPv4にフォールバックします。クライアントのIPv6設定（アドレス・デフォルトGW）が未設定です。'),
+      Choice(id: 'c', text: '宛先サーバーがIPv6をサポートしていない',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'DNSがAAAAを返している時点でサーバー側はIPv6対応しています。クライアント側の接続性が問題です。'),
+      Choice(id: 'd', text: 'IPv4とIPv6のルーティングテーブルが競合している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'クライアントにIPv6アドレス自体が割り当てられていません（ip -6 addr でlo:のみ）。ルーティング以前の問題です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'デュアルスタック環境でクライアントにIPv6アドレスが設定されていないため、'
+          'DNSがAAAAレコードを返してもIPv6通信ができない。'
+          'Happy Eyeballs（RFC 8305）アルゴリズムにより、'
+          'IPv6接続が失敗した場合はIPv4に自動フォールバックする。'
+          '原因: DHCPv6またはSLAACが正しく動作していない、'
+          'またはIPv6を静的に設定していない。',
+      nextActions: [
+        'クライアントのIPv6設定を確認（ip -6 addr）',
+        'ルーターのRA（Router Advertisement）設定を確認',
+        'DHCPv6またはSLAAC（StateLess Address AutoConfiguration）を有効化',
+        'IPv6デフォルトゲートウェイが設定されているか確認',
+        '修正後にping6で疎通確認してIPv6接続性を確保',
+      ],
+      relatedCommands: [
+        'ip -6 addr  (IPv6アドレス確認)',
+        'ip -6 route  (IPv6ルーティングテーブル確認)',
+        'radvd --configtest  (ルーターAdvertisement設定確認)',
+        'ping6 2001:db8::1',
+        'dig AAAA example.com  (DNS確認)',
+      ],
+      studyReference: 'CCNA: IPv6・SLAAC・DHCPv6・Happy Eyeballs（RFC 8305）・デュアルスタック',
+    ),
+  ),
+
+  // ━━ キャパシティ 追加問題（不足分） ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Question(
+    id: 'q_cap_003_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_003',
+    prompt: 'BGPフルルートを受信するルーターでメモリエラーが出ています。\n原因として最も適切なものはどれですか？',
+    logLines: [
+      'Router# show version | include memory',
+      '  Cisco IOS-XE, 4GB DRAM',
+      '',
+      'Router# show bgp summary',
+      '  Neighbor  Prefixes',
+      '  1.2.3.4   903,425  ← フルルート（約90万経路）',
+      '',
+      'Router# show processes memory sorted | head',
+      '  PID  Process          Alloc     Freed     Holding',
+      '  1    BGP Scanner      3,812MB   120MB     3,692MB  ← 3.7GB使用',
+      '',
+      '%SYS-2-MALLOCFAIL: Memory allocation of 65536 bytes failed',
+      '  -Process= BGP Scanner',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'BGPネイバーのAS番号が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'AS番号が間違えばBGPはEstablishできません。フルルート（90万経路）でメモリが枯渇しているのが問題です。'),
+      Choice(id: 'b', text: 'BGPフルルート（約90万経路）がメモリ（4GB）をほぼ使い切りシステムが不安定になっている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ BGPフルルートは4GB以上のメモリを必要とします。4GBのルーターでフルルートを受信するとメモリが枯渇します。フィルタリングでデフォルトルートのみ受信するか、メモリを増設します。'),
+      Choice(id: 'c', text: 'CPU使用率が高すぎる',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'show processes memoryにあるようにメモリが問題です。BGP Scannerが3.7GB消費して残りわずかです。'),
+      Choice(id: 'd', text: 'ルーティングテーブルのエントリ形式が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '経路自体は正常に受信されています。物理メモリの容量不足がMALLOCFAILの原因です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'BGPフルルート（インターネット全経路、現在約90万経路）は膨大なメモリを消費する。'
+          '4GBのルーターではBGPテーブル・RIB・FIBを保持しきれずメモリ枯渇になる。'
+          '解決策: ①デフォルトルートのみ受信するよう prefix-list でフィルタリング'
+          '②特定のASのみ受信するよう as-path フィルタリング'
+          '③メモリを8GB以上に増設。',
+      nextActions: [
+        'ISPからデフォルトルートのみ受信するようprefix-listを設定する',
+        'ip prefix-list FILTER-IN permit 0.0.0.0/0',
+        'neighbor 1.2.3.4 prefix-list FILTER-IN in',
+        'BGPをソフトリセットしてフィルタを適用（clear bgp soft）',
+        '中長期: メモリ増設またはフルルート対応機種への移行',
+      ],
+      relatedCommands: [
+        'ip prefix-list DEFAULT-ONLY permit 0.0.0.0/0',
+        'router bgp 65001',
+        ' neighbor 1.2.3.4 prefix-list DEFAULT-ONLY in',
+        'clear bgp ipv4 unicast 1.2.3.4 soft in',
+        'show bgp summary  (経路数の減少を確認)',
+      ],
+      studyReference: 'CCNP ENCOR: BGP・フルルート・prefix-list・メモリ最適化',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_006_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_006',
+    prompt: '深夜のバックアップ中に他の通信がドロップしています。\nキュー統計から原因を選んでください。',
+    logLines: [
+      'Router# show interfaces GigabitEthernet0/0 | include queue',
+      '  Output queue: 300/300 packets  ← キューが満杯',
+      '  Queueing strategy: fifo',
+      '',
+      'Router# show interfaces GigabitEthernet0/0 | include drops',
+      '  Output drops: 45,231  ← 深夜2時～4時に集中',
+      '',
+      '# バックアップジョブのスケジュール',
+      '  02:00-04:00: フルバックアップ（最大帯域使用）',
+      '  転送速度: 950Mbps (1Gbpsリンクの95%)',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'バックアップサーバーのディスクが遅い',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ディスクが遅ければバックアップが遅くなりますが、ネットワークのキューが満杯になる原因にはなりません。'),
+      Choice(id: 'b', text: 'バックアップのバースト通信がインターフェースキューを満杯にして他の通信がドロップしている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ バックアップが95%の帯域を使用してFIFOキューが満杯（300/300）になっています。他のトラフィックがキューに入れず45,000以上のパケットがドロップしています。'),
+      Choice(id: 'c', text: 'バックアップ対象のファイルが破損している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ファイル破損はアプリ層の問題で、ネットワークキューの満杯とは無関係です。'),
+      Choice(id: 'd', text: 'ルーターのCPUが高負荷になっている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'CPUはshow processes cpuで確認します。この問題はキュー統計からインターフェース出力キューの枯渇が原因です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'バックアップ処理が1Gbpsリンクのほぼ全帯域（950Mbps）を使用し、'
+          'FIFO（先入れ先出し）キューが満杯になって他のトラフィックがドロップしている。'
+          '解決策: ①トラフィックシェーピングでバックアップの帯域を制限する'
+          '②QoSで業務トラフィックを優先する'
+          '③バックアップ時間帯の見直し。',
+      nextActions: [
+        'バックアップトラフィックの帯域をシェーピングで制限する（例: 500Mbps上限）',
+        'policy-mapでバックアップを識別してpolicing/shapingを適用',
+        'QoSポリシーで業務トラフィックをバックアップより優先するクラスに設定',
+        'バックアップウィンドウを帯域余裕のある時間帯に移動する',
+      ],
+      relatedCommands: [
+        'class-map match-any BACKUP',
+        ' match dscp cs1  (バックアップをDSCP CS1でマーク)',
+        'policy-map SHAPE-BACKUP',
+        ' class BACKUP',
+        '  shape average 500000000  (500Mbpsに制限)',
+        'show policy-map interface GigabitEthernet0/0',
+      ],
+      studyReference: 'CCNP: トラフィックシェーピング・ポリシング・QoS・バーストトラフィック管理',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_008_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_008',
+    prompt: '海外拠点との大容量ファイル転送が理論値の10%しか出ません。\n原因を特定してください。',
+    logLines: [
+      '# 回線仕様',
+      'WAN帯域: 100Mbps',
+      '往復遅延（RTT）: 200ms（東京-ロンドン間）',
+      '',
+      '# 帯域遅延積（BDP）計算',
+      'BDP = 100Mbps × 0.2秒 = 2.5MB',
+      '',
+      '# TCPウィンドウサイズ確認',
+      'ss -ti | grep window',
+      '  rcv_space: 87380  ← 約85KB（デフォルト）',
+      '',
+      '# 実測スループット',
+      '理論値: 100Mbps',
+      '実測値: 約10Mbps (10%)',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'WAN回線の帯域が不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: '帯域100Mbpsは確保されています。RTT200msの長距離回線ではTCPウィンドウサイズが性能のボトルネックになります。'),
+      Choice(id: 'b', text: 'TCPウィンドウサイズ（85KB）が帯域遅延積（2.5MB）より小さくパイプを埋めきれない',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ 長距離回線ではBDP分のデータをパイプに充填できないとスループットが上がりません。デフォルト85KBのウィンドウでは2.5MBのパイプを埋められず10%程度しか出ません。'),
+      Choice(id: 'c', text: 'ルーティングプロトコルの設定ミス',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'ルーティングが問題なら接続自体ができません。TCPスループットの問題はウィンドウサイズとBDPの関係が原因です。'),
+      Choice(id: 'd', text: 'ファイアウォールがパケットを部分的にブロックしている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'FWブロックなら拒否ログが出ます。スループットが10%に制限されているのはTCPウィンドウサイズがボトルネックになっている典型です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          '帯域遅延積（BDP）問題。'
+          'BDP = 100Mbps × 0.2秒 = 2,500,000バイト（約2.5MB）。'
+          'TCPウィンドウサイズ（85KB）がBDP（2.5MB）より大幅に小さいため、'
+          'ACKが返ってくる前に送信バッファが埋まってしまい送信が停止する。'
+          '結果: 理論値の約3%(85KB/2.5MB)しか帯域を活用できない。'
+          '解決策: TCPウィンドウスケーリングを有効化してウィンドウサイズをBDP以上に設定する。',
+      nextActions: [
+        'Linuxでウィンドウスケーリングが有効か確認（sysctl net.ipv4.tcp_window_scaling）',
+        'TCPバッファサイズをBDP以上に拡大する',
+        'sysctl -w net.core.rmem_max=4194304',
+        'sysctl -w net.core.wmem_max=4194304',
+        'BBR（Bottleneck Bandwidth and RTT）輻輳制御への変更も検討',
+      ],
+      relatedCommands: [
+        'sysctl net.ipv4.tcp_window_scaling',
+        'sysctl net.core.rmem_max',
+        'sysctl -w net.core.rmem_max=4194304',
+        'sysctl -w net.ipv4.tcp_congestion_control=bbr',
+        'iperf3 -c [対向IP] -t 30  (スループット測定)',
+      ],
+      studyReference: 'CCNP: 帯域遅延積（BDP）・TCPウィンドウサイズ・TCPチューニング・BBR',
+    ),
+  ),
+
+  Question(
+    id: 'q_cap_009_1',
+    type: QuestionType.logChallenge,
+    scenarioId: 's_cap_009',
+    prompt: '映像配信システムを導入したら全スイッチポートの帯域が逼迫しました。\n原因を特定してください。',
+    logLines: [
+      'SW-Core# show interfaces GigabitEthernet0/1 counters',
+      '  InOctets: 45,000,000/sec  (360Mbps)',
+      '  OutOctets: 44,800,000/sec (358Mbps)  ← 視聴者がいないポートも同様',
+      '',
+      'SW-Core# show ip igmp snooping',
+      '  IGMP Snooping: Disabled  ← 無効',
+      '',
+      '# 映像ストリーム仕様',
+      '  マルチキャストグループ: 239.1.0.0/24',
+      '  帯域: 50Mbps × 5チャンネル = 250Mbps',
+      '  受信者: 各フロアに数台のみ',
+    ],
+    choices: [
+      Choice(id: 'a', text: 'スイッチの帯域が不足している',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'スイッチの帯域ではなくIGMPスヌーピングが無効のためマルチキャストが全ポートにブロードキャストされているのが原因です。'),
+      Choice(id: 'b', text: 'IGMPスヌーピングが無効でマルチキャストがブロードキャストとして全ポートに転送されている',
+          isCorrect: true, scoreImpact: 100,
+          feedbackText: '正解！ IGMPスヌーピングが無効だとスイッチはマルチキャストをブロードキャストとして全ポートに転送します。250Mbpsの映像が全ポートに流れて帯域を圧迫しています。'),
+      Choice(id: 'c', text: 'マルチキャストルーティングの設定が間違っている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'マルチキャストルーティング（PIM）はL3の設定です。スイッチのL2転送の問題（IGMPスヌーピング無効）が根本原因です。'),
+      Choice(id: 'd', text: '映像サーバーが過負荷になっている',
+          isCorrect: false, scoreImpact: 0,
+          feedbackText: 'サーバー過負荷なら映像が止まります。全ポートで同等の帯域消費はブロードキャスト化の典型症状です。'),
+    ],
+    explanation: Explanation(
+      whatHappened:
+          'IGMPスヌーピングが無効のため、スイッチはマルチキャストフレームを'
+          'ブロードキャストとして全ポートに転送している。'
+          '250Mbpsの映像ストリームが全ポートに流れ、帯域が逼迫している。'
+          'IGMPスヌーピングを有効にすると、スイッチはIGMPのJoinメッセージを監視して'
+          '受信希望のポートにのみマルチキャストを転送するようになる。',
+      nextActions: [
+        'スイッチでIGMPスヌーピングを有効化する（ip igmp snooping）',
+        '各VLANでIGMPスヌーピングを有効化する',
+        'マルチキャストルーターポートの設定を確認する',
+        '有効化後にshow ip igmp snooping groupsで転送ポートを確認',
+      ],
+      relatedCommands: [
+        'ip igmp snooping',
+        'ip igmp snooping vlan 10',
+        'show ip igmp snooping',
+        'show ip igmp snooping groups',
+        'show ip igmp snooping mrouter',
+      ],
+      studyReference: 'CCNA: マルチキャスト・IGMP・IGMPスヌーピング・PIMスパースモード',
+    ),
+  ),
 ];

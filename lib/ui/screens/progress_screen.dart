@@ -40,7 +40,7 @@ class ProgressScreen extends ConsumerWidget {
               loading: () => const SizedBox(height: 80,
                   child: Center(child: CircularProgressIndicator())),
               error: (e, _) {
-                developer.log('[ProgressScreen] score error: \$e');
+                developer.log('[ProgressScreen] score error: $e');
                 return const _ScoreCard(totalScore: 0);
               },
               data: (score) => _ScoreCard(totalScore: score),
@@ -52,32 +52,11 @@ class ProgressScreen extends ConsumerWidget {
             accuracyAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, st) {
-                developer.log('[ProgressScreen] accuracy error: \$e\n\$st');
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.orange, size: 48),
-                        const SizedBox(height: 12),
-                        Text('データ読み込みエラー:\n\$e',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12)),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: () {
-                            ref.invalidate(categoryAccuracyProvider);
-                            ref.invalidate(totalScoreProvider);
-                          },
-                          child: const Text('再試行'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                developer.log('[ProgressScreen] accuracy error: $e');
+                return const _EmptyProgressView();
               },
               data: (accuracy) {
-                developer.log('[ProgressScreen] accuracy loaded: \$accuracy');
+                developer.log('[ProgressScreen] accuracy loaded: $accuracy');
                 if (accuracy.isEmpty) {
                   return const _EmptyProgressView();
                 }
@@ -112,7 +91,7 @@ class _ScoreCard extends StatelessWidget {
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('累計スコア',
               style: TextStyle(fontSize: 13, color: Colors.grey)),
-          Text('\$totalScore pt',
+          Text('$totalScore pt',
               style: const TextStyle(
                   fontSize: 28, fontWeight: FontWeight.bold)),
         ]),
@@ -185,7 +164,7 @@ class _AccuracyBarChart extends StatelessWidget {
           leftTitles: AxisTitles(sideTitles: SideTitles(
             showTitles: true,
             getTitlesWidget: (v, _) =>
-                Text('\${v.toInt()}%',
+                Text('${v.toInt()}%',
                     style: const TextStyle(fontSize: 10)),
             reservedSize: 36,
           )),
@@ -215,6 +194,7 @@ class _CategoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pct = (accuracy * 100).round();
     final color = accuracy >= 0.8
         ? Colors.green
         : accuracy >= 0.5 ? Colors.orange : Colors.red;
@@ -224,7 +204,7 @@ class _CategoryRow extends StatelessWidget {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(_labels[category] ?? category.name,
               style: const TextStyle(fontSize: 14)),
-          Text('\$pct%',
+          Text('$pct%',
               style: TextStyle(
                   fontWeight: FontWeight.bold, color: color)),
         ]),

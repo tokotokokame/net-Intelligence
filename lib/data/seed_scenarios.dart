@@ -374,4 +374,317 @@ const List<Scenario> kSeedScenarios = [
     questionIds: ['q_real_022_1', 'q_real_022_2'],
     prerequisite: 'VMware ESXi・仮想化基盤・ハイパーバイザーセキュリティ',
   ),
+
+  // ━━ L1-L2 追加シナリオ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Scenario(
+    id: 's_l2_003',
+    title: 'スパニングツリーによるポートブロッキング',
+    description:
+        'スイッチを追加したら特定の通信が突然できなくなった。'
+        'STPのBPDUメッセージとポート状態ログから原因を特定する。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_l2_003_1', 'q_l2_003_2'],
+    prerequisite: 'STP・BPDUの基礎・ポート状態（Blocking/Forwarding）',
+  ),
+
+  Scenario(
+    id: 's_l2_004',
+    title: 'デュプレックス不一致によるパフォーマンス劣化',
+    description:
+        'リンクは正常に見えるが大量のCRCエラーと通信遅延が発生している。'
+        'インターフェース統計からデュプレックスミスマッチを特定する。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_l2_004_1'],
+    prerequisite: '全二重・半二重・Auto-Negotiation',
+  ),
+
+  Scenario(
+    id: 's_l2_005',
+    title: 'MACアドレステーブルのフラッピング',
+    description:
+        'スイッチのSyslogに同一MACが異なるポートで検出されるアラートが頻発している。'
+        'ループ発生とMACフラッピングの関係を理解して対処する。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_l2_005_1', 'q_l2_005_2'],
+    prerequisite: 'MACアドレステーブル・ブロードキャストストーム・STP',
+  ),
+
+  Scenario(
+    id: 's_l2_006',
+    title: 'トランクポートのVLANネイティブ不一致',
+    description:
+        'トランクリンクを設定したがVLAN1の通信だけが暗号化されずに転送されている。'
+        'ネイティブVLAN設定の不一致がセキュリティリスクになるケースを学ぶ。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_l2_006_1'],
+    prerequisite: 'IEEE 802.1Q・トランクポート・ネイティブVLAN',
+  ),
+
+  Scenario(
+    id: 's_l2_007',
+    title: 'EtherChannelの設定ミスによるリンク障害',
+    description:
+        '帯域増強のためEtherChannelを設定したが、'
+        '一方のスイッチでモードが不一致でリンクが確立しない。'
+        'LACPとPAgPのネゴシエーションログを読む。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.advanced,
+    questionIds: ['q_l2_007_1', 'q_l2_007_2'],
+    prerequisite: 'EtherChannel・LACP・PAgP・ポートチャネル',
+  ),
+
+  Scenario(
+    id: 's_l2_008',
+    title: 'PoEスイッチの給電不足による無線AP停止',
+    description:
+        '無線APが断続的に再起動を繰り返している。'
+        'スイッチのPoE統計から給電予算の超過を特定し、'
+        '優先度設定で解決する。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_l2_008_1'],
+    prerequisite: 'PoE・IEEE 802.3af/at・給電優先度',
+  ),
+
+  Scenario(
+    id: 's_l2_009',
+    title: 'CDP/LLDPで発見した機器構成の不整合',
+    description:
+        'CDP/LLDPの隣接情報と実際のネットワーク図が一致していない。'
+        '不審な機器の接続を発見し、セキュリティリスクを評価する。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_l2_009_1'],
+    prerequisite: 'CDP・LLDP・ネットワーク探索プロトコル',
+  ),
+
+  Scenario(
+    id: 's_l2_010',
+    title: 'ジャンボフレームの設定不一致によるMTUブラックホール',
+    description:
+        '大容量ファイル転送だけが失敗するが、小さなpingは通る。'
+        'MTUブラックホール問題をPMTUDとMSS調整で解決する手順を学ぶ。',
+    category: ScenarioCategory.layer1layer2,
+    difficulty: DifficultyLevel.advanced,
+    questionIds: ['q_l2_010_1', 'q_l2_010_2'],
+    prerequisite: 'MTU・ジャンボフレーム・PMTUD・MSS',
+  ),
+
+  // ━━ L3障害 追加シナリオ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Scenario(
+    id: 's_l3_003',
+    title: 'スタティックルートの浮動経路切り替え失敗',
+    description:
+        'メイン回線障害時にバックアップ回線への自動切り替えが動作しなかった。'
+        '浮動スタティックルートのAD値設定ミスを特定する。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_l3_003_1', 'q_l3_003_2'],
+    prerequisite: 'スタティックルート・Administrative Distance・フローティングルート',
+  ),
+
+  Scenario(
+    id: 's_l3_004',
+    title: 'NATの変換テーブル枯渇によるインターネット接続不能',
+    description:
+        '特定時間帯だけインターネット接続ができなくなる。'
+        'NATテーブルのセッション数上限と古いエントリのタイムアウト設定を確認する。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_l3_004_1'],
+    prerequisite: 'NAT・PAT・NATテーブル・セッションタイムアウト',
+  ),
+
+  Scenario(
+    id: 's_l3_005',
+    title: 'ルーティングループによるパケット消失',
+    description:
+        'tracerouteが同じルーターを繰り返し経由してTTL超過になる。'
+        'ルーティングテーブルの矛盾を見つけて修正する。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.advanced,
+    questionIds: ['q_l3_005_1', 'q_l3_005_2'],
+    prerequisite: 'ルーティングループ・TTL・スプリットホライズン・ポイズンリバース',
+  ),
+
+  Scenario(
+    id: 's_l3_006',
+    title: 'BGPルートリフレクター設定ミスによる経路消失',
+    description:
+        'iBGP環境でルートリフレクターを導入したが、'
+        '一部のルーターが特定の経路を学習できない。'
+        'クラスター設定の誤りを特定する。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.advanced,
+    questionIds: ['q_l3_006_1'],
+    prerequisite: 'BGP・iBGP・ルートリフレクター・クラスターID',
+  ),
+
+  Scenario(
+    id: 's_l3_007',
+    title: 'ACLによる意図しないトラフィックブロック',
+    description:
+        'セキュリティ強化でACLを追加したら、想定外のサービスも止まった。'
+        'ACL評価の順序（シーケンス番号）と暗黙のdeny allを理解する。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_l3_007_1', 'q_l3_007_2'],
+    prerequisite: 'ACL・permit/deny・暗黙のdeny・シーケンス番号',
+  ),
+
+  Scenario(
+    id: 's_l3_008',
+    title: 'RIPの最大ホップ数超過による経路無効化',
+    description:
+        'ネットワークを拡張したら一部の拠点が到達不能になった。'
+        'RIPの最大ホップ数15の制限とその解決策を学ぶ。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_l3_008_1'],
+    prerequisite: 'RIP・ホップ数・最大ホップ15・無限カウント問題',
+  ),
+
+  Scenario(
+    id: 's_l3_009',
+    title: 'IPv6デュアルスタック環境での通信優先順位問題',
+    description:
+        'IPv4/IPv6デュアルスタック環境でDNSがAAAAレコードを返すが'
+        '実際の通信がIPv4になってしまう原因を特定する。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_l3_009_1'],
+    prerequisite: 'IPv6・デュアルスタック・AAAAレコード・Happy Eyeballs',
+  ),
+
+  Scenario(
+    id: 's_l3_010',
+    title: 'DHCP枯渇によるIPアドレス取得失敗',
+    description:
+        '新しいデバイスが接続するとIPアドレスを取得できない。'
+        'DHCPリースのスコープ不足とリース期間の調整を判断する。',
+    category: ScenarioCategory.layer3,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_l3_010_1', 'q_l3_010_2'],
+    prerequisite: 'DHCP・DHCPスコープ・リース期間・DORA',
+  ),
+
+  // ━━ キャパシティ 追加シナリオ ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Scenario(
+    id: 's_cap_002',
+    title: 'CPU高負荷によるルーター処理遅延',
+    description:
+        'ルーターのCPU使用率が常時90%以上で、'
+        'ルーティングプロトコルのHelloパケットが遅延している。'
+        'プロセス別CPU統計から原因プロセスを特定する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_cap_002_1', 'q_cap_002_2'],
+    prerequisite: 'CPU使用率・プロセス優先度・CEF・process switching',
+  ),
+
+  Scenario(
+    id: 's_cap_003',
+    title: 'メモリ不足によるBGPテーブル学習失敗',
+    description:
+        'フルルートを受け取るBGPルーターのメモリが枯渇し、'
+        '経路テーブルが不完全な状態になっている。'
+        'メモリ最適化とルートフィルタリングを判断する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.advanced,
+    questionIds: ['q_cap_003_1'],
+    prerequisite: 'BGPフルルート・メモリ管理・ルートフィルタリング・prefix-list',
+  ),
+
+  Scenario(
+    id: 's_cap_004',
+    title: 'インターフェースのエラーカウンター急増',
+    description:
+        '特定のインターフェースでInput errorsとCRC errorsが急増している。'
+        'ケーブル劣化・コネクタ不良・電磁干渉の可能性を切り分ける。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_cap_004_1'],
+    prerequisite: 'エラーカウンター・CRC・Input errors・物理層診断',
+  ),
+
+  Scenario(
+    id: 's_cap_005',
+    title: 'QoSポリシー適用ミスによる音声品質劣化',
+    description:
+        'VoIPの通話品質が業務時間帯だけ劣化する。'
+        'QoSポリシーが正しく適用されているか確認し、'
+        'DSCPマーキングの優先キュー設定を修正する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_cap_005_1', 'q_cap_005_2'],
+    prerequisite: 'QoS・DSCP・EF（Expedited Forwarding）・VoIP品質指標',
+  ),
+
+  Scenario(
+    id: 's_cap_006',
+    title: 'バースト通信によるキューあふれとパケットロス',
+    description:
+        'バックアップ処理が始まる深夜に他の通信が途切れる。'
+        'キュー統計からバースト通信の影響を確認し、'
+        'トラフィックシェーピングで解決する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_cap_006_1'],
+    prerequisite: 'キュー・シェーピング・ポリシング・バースト許容値',
+  ),
+
+  Scenario(
+    id: 's_cap_007',
+    title: 'DNS問い合わせの増大によるDNSサーバー過負荷',
+    description:
+        'DNSサーバーのレスポンスタイムが急増して業務に支障が出ている。'
+        'キャッシュヒット率の低下とTTL設定を見直して負荷を軽減する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_cap_007_1'],
+    prerequisite: 'DNS・TTL・キャッシュ・再帰問い合わせ・DNSキャッシュサーバー',
+  ),
+
+  Scenario(
+    id: 's_cap_008',
+    title: 'WAN回線の遅延増大とBDP最適化',
+    description:
+        '海外拠点との大容量ファイル転送が理論値の10%しか出ない。'
+        '帯域遅延積（BDP）とTCPウィンドウサイズの関係を理解して最適化する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.advanced,
+    questionIds: ['q_cap_008_1'],
+    prerequisite: '帯域遅延積（BDP）・TCPウィンドウサイズ・TCPチューニング',
+  ),
+
+  Scenario(
+    id: 's_cap_009',
+    title: 'マルチキャスト配信による意図しない帯域消費',
+    description:
+        '映像配信システムを導入したら全セグメントの帯域が逼迫した。'
+        'IGMPスヌーピングが無効でマルチキャストがブロードキャスト化している原因を特定する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.intermediate,
+    questionIds: ['q_cap_009_1'],
+    prerequisite: 'マルチキャスト・IGMP・IGMPスヌーピング・PIM',
+  ),
+
+  Scenario(
+    id: 's_cap_010',
+    title: 'ネットワーク監視ツールのポーリング負荷',
+    description:
+        'SNMP監視の間隔を短くしたらルーターのCPUが上昇し始めた。'
+        '監視ツールのポーリング設計と監視対象の適切な設定を判断する。',
+    category: ScenarioCategory.capacity,
+    difficulty: DifficultyLevel.beginner,
+    questionIds: ['q_cap_010_1'],
+    prerequisite: 'SNMP・ポーリング間隔・監視設計・SNMP v2c/v3',
+  ),
 ];
