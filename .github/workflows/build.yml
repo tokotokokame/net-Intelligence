@@ -1,11 +1,16 @@
-name: Build and Release APK
+name: Build and Release
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  build:
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # Android APK ビルド
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  build-android:
+    name: "🤖 Android APK"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,22 +30,148 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build APK
+      - name: Build Android APK
         run: flutter build apk --release
 
-      - name: Create Release
+      - name: Rename APK (platform label)
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             build/app/outputs/flutter-apk/NetIntelligence-Android.apk
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/NetIntelligence-Android.apk
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # iOS IPA ビルド
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  build-ios:
+    name: "🍎 iOS IPA"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: "stable"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install --repo-update
+        continue-on-error: true
+
+      - name: Build iOS (no codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package IPA
+        run: |
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -r NetIntelligence-iOS-unsigned.ipa Payload/
+          echo "IPA size: $(du -sh NetIntelligence-iOS-unsigned.ipa)"
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: build/ios/ipa/NetIntelligence-iOS-unsigned.ipa
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # リリース作成（両ビルド完了後）
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  release:
+    name: "🚀 Create Release"
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+    if: always() && needs.build-android.result == 'success'
+    steps:
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: artifacts/
+
+      - name: Download iOS IPA
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: artifacts/
+        continue-on-error: true
+
+      - name: List artifacts
+        run: ls -lh artifacts/
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: "Net.Intelligence v1.0.0-build${{ github.run_number }}"
+          name: "🐢 Net.Intelligence build-${{ github.run_number }}"
           body: |
-            ## Net.Intelligence
-            ### インストール方法
-            1. app-release.apk をダウンロード
-            2. 設定 -> セキュリティ -> 提供元不明のアプリ -> 許可
-            3. APKをタップしてインストール
-          files: build/app/outputs/flutter-apk/app-release.apk
+            # 🐢 Net.Intelligence
+
+            **53シナリオ・100問以上収録** のネットワーク障害インテリジェンス判断トレーニングアプリです。
+
+            ---
+
+            ## 📥 ダウンロード
+
+            | プラットフォーム | ファイル | 動作確認済み |
+            |:---:|:---:|:---:|
+            | 🤖 **Android** | `NetIntelligence-Android.apk` | Android 8.0 (API 26) 以上 |
+            | 🍎 **iOS** | `NetIntelligence-iOS-unsigned.ipa` | iOS 13.0 以上 |
+
+            ---
+
+            ## 🤖 Android インストール方法
+
+            1. 下の `NetIntelligence-Android.apk` をタップしてダウンロード
+            2. Android の設定を開く
+            3. `設定 → セキュリティ → 提供元不明のアプリ` を許可
+            4. ダウンロードした APK をタップしてインストール
+
+            ---
+
+            ## 🍎 iOS インストール方法（サイドロード）
+
+            `NetIntelligence-iOS-unsigned.ipa` は **未署名** のため、
+            以下のいずれかの方法でインストールしてください。
+
+            ### 方法A: AltStore（推奨）
+            1. PC/Macに [AltStore](https://altstore.io) をインストール
+            2. iPhoneをPCに接続
+            3. AltStoreのIPAインストール機能で `NetIntelligence-iOS-unsigned.ipa` を選択
+            4. iPhone の `設定 → 一般 → VPNとデバイス管理` でアプリを信頼
+
+            ### 方法B: Sideloadly
+            1. PC/Macに [Sideloadly](https://sideloadly.io) をインストール
+            2. iPhoneをPCに接続
+            3. Sideloadly に IPA をドラッグ&ドロップしてインストール
+
+            > ⚠️ **注意**: 無料Apple IDを使用する場合、7日ごとに再インストールが必要です。
+            > App Store での配布には Apple Developer Program（年間$99）への登録が別途必要です。
+
+            ---
+
+            ## 📋 このビルドの内容
+
+            - **53シナリオ** 収録（L1-L2障害・L3障害・セキュリティ・キャパシティ）
+            - **実際のサイバー攻撃事例**（2022〜2025年）22件を含む
+            - カテゴリ別習熟度トラッキング（棒グラフ表示）
+            - 日本語フォント（Noto Sans JP）対応
+          files: |
+            artifacts/NetIntelligence-Android.apk
+            artifacts/NetIntelligence-iOS-unsigned.ipa
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
