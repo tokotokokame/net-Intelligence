@@ -330,6 +330,11 @@ Issue・Pull Request を歓迎します。詳細は [CONTRIBUTING.md](CONTRIBUTI
 
 ---
 
+## Zenn
+このSyslogを見て判断できる？実際のサイバー攻撃ログで訓練できるアプリを作った【53事例】(https://zenn.dev/tokotokokame/articles/9c2f627f9b0264)
+
+---
+
 <div align="center">
 
 **Net.Intelligence** — 亀たちのように、コツコツ１歩ずつ進もう 🐢
